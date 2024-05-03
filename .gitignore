@@ -1,0 +1,7 @@
+.*.swo
+.*.swp
+project5/client/node_modules/
+project5/client/public/build/
+project5/server/main
+project5/nohup.out
+project5/server.log
