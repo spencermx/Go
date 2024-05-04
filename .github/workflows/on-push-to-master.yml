@@ -81,3 +81,12 @@ jobs:
     - name: Copy server files to EC2 instance
       run: |
         scp -o StrictHostKeyChecking=no project5/server/main ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }}:/home/ubuntu/webapps/vimtube/server
+
+
+    - name: Stop existing server application
+      run: |
+        ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "pkill -f './main'"
+
+    - name: Run server application
+      run: |
+        ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "cd /home/ubuntu/webapps/vimtube/server && nohup ./main &"
