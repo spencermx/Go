@@ -51,6 +51,13 @@ jobs:
     - name: Echo EC2 instance IP
       run: echo "The IP address of the EC2 instance is ${{ steps.ec2_instance_ip.outputs.instance_ip }}"
 
+
+    - name: Install SSH key
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        known_hosts: ${{ steps.ec2_instance_ip.outputs.instance_ip }}
+
     - name: Copy client files to EC2 instance
       run: |
           scp -r -o StrictHostKeyChecking=no project5/client/build ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }}:/home/ubuntu/webapps/vimtube/client/build
