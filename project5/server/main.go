@@ -13,7 +13,7 @@ import (
 //    "github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 func main() {
-    fs := http.FileServer(http.Dir("static"))
+    fs := http.FileServer(http.Dir("../client/build/"))
     http.Handle("/", fs)
 
     log.Println("Server running on http://localhost:8080")
