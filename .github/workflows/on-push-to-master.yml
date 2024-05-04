@@ -1,0 +1,26 @@
+name: Run on Push to Master
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    # Add your custom steps here
+    - name: Run a command
+      run: echo "This runs on push to master branch"
+
+    - name: Change directory
+      run: cd project5/client
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build project
+      run: npm run build
