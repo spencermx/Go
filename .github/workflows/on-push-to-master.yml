@@ -85,8 +85,8 @@ jobs:
 
     - name: Stop existing server application
       run: |
-        ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "pkill -f './main'"
+        ssh -v -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "pkill -f './main'"
 
     - name: Run server application
       run: |
-        ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "cd /home/ubuntu/webapps/vimtube/server && nohup ./main &"
+        ssh -v -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "cd /home/ubuntu/webapps/vimtube/server && nohup ./main &"
