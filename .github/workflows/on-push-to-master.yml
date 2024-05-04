@@ -11,7 +11,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3.4.0
-    
+
     - name: Use Node.js
       uses: actions/setup-node@v3.6.0
       with:
@@ -57,13 +57,27 @@ jobs:
       with:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         known_hosts: ${{ steps.ec2_instance_ip.outputs.instance_ip }}
+          
+    - name: Remove existing client directory
+      run: |
+          ssh ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "rm -rf /home/ubuntu/webapps/vimtube/client"
+
+    - name: Create client directory
+      run: |
+        ssh ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "mkdir -p /home/ubuntu/webapps/vimtube/client"
 
     - name: Copy client files to EC2 instance
       run: |
-          scp -r -o StrictHostKeyChecking=no project5/client/build ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }}:/home/ubuntu/webapps/vimtube/client/build
+        scp -r -o StrictHostKeyChecking=no project5/client/build ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }}:/home/ubuntu/webapps/vimtube/client
+
+    - name: Remove existing server directory
+      run: |
+        ssh ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "rm -rf /home/ubuntu/webapps/vimtube/server"
+
+    - name: Create server directory
+      run: |
+        ssh ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "mkdir -p /home/ubuntu/webapps/vimtube/server"
 
     - name: Copy server files to EC2 instance
       run: |
-          scp -o StrictHostKeyChecking=no project5/server/main ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }}:/home/ubuntu/webapps/vimtube/server
-
-        
+        scp -o StrictHostKeyChecking=no project5/server/main ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }}:/home/ubuntu/webapps/vimtube/server
