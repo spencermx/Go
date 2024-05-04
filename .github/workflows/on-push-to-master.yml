@@ -11,16 +11,19 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    
-    # Add your custom steps here
-    - name: Run a command
-      run: echo "This runs on push to master branch"
 
     - name: Change directory
       run: cd project5/client
+
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
 
     - name: Install dependencies
       run: npm ci
 
     - name: Build project
       run: npm run build
+
+    # Add any additional steps if needed
