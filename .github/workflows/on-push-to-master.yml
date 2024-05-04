@@ -84,4 +84,4 @@ jobs:
 
     - name: Start process with PM2
       run: |
-        ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "cd /home/ubuntu/webapps/vimtube/server && pm2 start ./main --name my-process"
+        ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "cd /home/ubuntu/webapps/vimtube/server && pm2 start ./main --name my-process -f"
