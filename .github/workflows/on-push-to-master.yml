@@ -82,11 +82,14 @@ jobs:
       run: |
         scp -o StrictHostKeyChecking=no project5/server/main ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }}:/home/ubuntu/webapps/vimtube/server
 
-
-    - name: Stop existing server application
+    - name: Start process with PM2
       run: |
-        ssh -v -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "pkill -f './main' || true"
+        ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "pm2 start ./main --name my-process"
 
-    - name: Run server application
-      run: |
-        ssh -v -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "cd /home/ubuntu/webapps/vimtube/server && nohup ./main &"
+        #    - name: Stop existing server application
+        #      run: |
+        #        ssh -v -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "pkill -f './main' || true"
+        #
+        #    - name: Run server application
+        #      run: |
+        #        ssh -v -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "cd /home/ubuntu/webapps/vimtube/server && nohup ./main &"
