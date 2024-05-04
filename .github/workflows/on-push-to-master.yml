@@ -57,14 +57,14 @@ jobs:
       with:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         known_hosts: ${{ steps.ec2_instance_ip.outputs.instance_ip }}
-          
+
     - name: Remove existing client directory
       run: |
-          ssh ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "rm -rf /home/ubuntu/webapps/vimtube/client"
+        ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "rm -rf /home/ubuntu/webapps/vimtube/client"
 
     - name: Create client directory
       run: |
-        ssh ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "mkdir -p /home/ubuntu/webapps/vimtube/client"
+        ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "mkdir -p /home/ubuntu/webapps/vimtube/client"
 
     - name: Copy client files to EC2 instance
       run: |
@@ -72,11 +72,11 @@ jobs:
 
     - name: Remove existing server directory
       run: |
-        ssh ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "rm -rf /home/ubuntu/webapps/vimtube/server"
+        ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "rm -rf /home/ubuntu/webapps/vimtube/server"
 
     - name: Create server directory
       run: |
-        ssh ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "mkdir -p /home/ubuntu/webapps/vimtube/server"
+        ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }} "mkdir -p /home/ubuntu/webapps/vimtube/server"
 
     - name: Copy server files to EC2 instance
       run: |
