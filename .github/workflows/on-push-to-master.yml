@@ -32,3 +32,25 @@ jobs:
       run: |
         cd project5/server
         go build main.go
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-2
+          
+    - name: Get EC2 public IP
+      id: get-ec2-public-ip
+      run: |
+        EC2_PUBLIC_IP=$(aws ec2 describe-instances \
+                        --instance-ids i-0558fc39891c05906 \
+                        --query 'Reservations[0].Instances[0].PublicIpAddress' \
+                        --output text)
+        echo "::set-output name=ec2-public-ip::$EC2_PUBLIC_IP"
+    
+        #    - name: Copy files to EC2 instance
+        #      run: |
+        #        scp -r -o StrictHostKeyChecking=no project5/client/build ec2-user@YOUR_EC2_PUBLIC_IP:/path/on/ec2/instance
+        #        scp -o StrictHostKeyChecking=no project5/server/main ec2-user@YOUR_EC2_PUBLIC_IP:/path/on/ec2/instance
+
