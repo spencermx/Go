@@ -12,18 +12,15 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Change directory
-      run: cd project5/client
-
     - name: Use Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '20'
 
     - name: Install dependencies
-      run: npm ci
+      run: cd project5/client && npm ci
 
     - name: Build project
-      run: npm run build
+      run: cd project5/client && npm run build
 
     # Add any additional steps if needed
