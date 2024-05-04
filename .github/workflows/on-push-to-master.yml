@@ -23,4 +23,12 @@ jobs:
     - name: Build project
       run: cd project5/client && npm run build
 
-    # Add any additional steps if needed
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.20
+
+    - name: Build server
+      run: |
+        cd project5/server
+        go build main.go
