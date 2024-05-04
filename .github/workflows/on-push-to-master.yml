@@ -39,6 +39,7 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-2 # Replace with your desired AWS region
+
     - name: Get EC2 instance IP
       id: ec2_instance_ip
       run: |
@@ -50,3 +51,12 @@ jobs:
     - name: Echo EC2 instance IP
       run: echo "The IP address of the EC2 instance is ${{ steps.ec2_instance_ip.outputs.instance_ip }}"
 
+    - name: Copy client files to EC2 instance
+      run: |
+          scp -r -o StrictHostKeyChecking=no project5/client/build ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }}:/home/ubuntu/webapps/vimtube/client/build
+
+    - name: Copy server files to EC2 instance
+      run: |
+          scp -o StrictHostKeyChecking=no project5/server/main ubuntu@${{ steps.ec2_instance_ip.outputs.instance_ip }}:/home/ubuntu/webapps/vimtube/server
+
+        
