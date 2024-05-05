@@ -8,16 +8,21 @@ import (
     "github.com/aws/aws-sdk-go/aws"
     "github.com/aws/aws-sdk-go/aws/session"
     "github.com/aws/aws-sdk-go/service/s3/s3manager"
+    "github.com/aws/aws-sdk-go/service/s3"
 )
 
 //    "html/template"
 //    "os"
-//    "github.com/aws/aws-sdk-go/service/s3"
 
 type Person struct {
     ID   int    `json:"id"`
     Name string `json:"name"`
     Age  int    `json:"age"`
+}
+
+type Image struct {
+  URL string `json:"url"`
+  Alt string `json:"alt"`
 }
 
 func main() {
@@ -29,6 +34,8 @@ func main() {
 
     http.HandleFunc("/upload", handleUpload)
 
+    http.HandleFunc("/getImages", getImages)
+      
     log.Println("Server running on http://localhost:8080")
 
     err := http.ListenAndServe(":8080", nil)
@@ -69,7 +76,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
     
     defer file.Close()
 
-    // Create a new AWS session
+    // Create a new AWS sessiom
     sess, err := session.NewSession(&aws.Config{
     	Region: aws.String("us-east-2"),
     })
@@ -95,6 +102,61 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
     }
 
     fmt.Fprintf(w, "File uploaded successfully")
+}
+
+func getImages(w http.ResponseWriter, r *http.Request) {
+    log.Println("Handling request for /")
+
+    // Create a new AWS session
+    sess, err := session.NewSession(&aws.Config{
+        Region: aws.String("us-east-2"),
+    })
+    if err != nil {
+        log.Printf("Failed to create AWS session: %v", err)
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    log.Println("Created AWS session")
+
+    // Create an S3 client
+    svc := s3.New(sess)
+    log.Println("Created S3 client")
+
+    // List objects in the S3 bucket
+    result, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{
+        Bucket: aws.String("goserverbucket"),
+    })
+    if err != nil {
+        log.Printf("Failed to list objects in S3 bucket: %v", err)
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    log.Printf("Listed %d objects in S3 bucket", len(result.Contents))
+
+    // Create a slice to store the image objects
+    var images []Image
+
+    // Iterate over the objects and create the image objects
+    for _, obj := range result.Contents {
+        imageURL := fmt.Sprintf("https://%s.s3.amazonaws.com/%s", "goserverbucket", *obj.Key)
+        image := Image{
+            URL: imageURL,
+            Alt: *obj.Key, // Use the object key as the alt text
+        }
+        images = append(images, image)
+    }
+    log.Printf("Created %d image objects", len(images))
+
+    // Set the response content type to JSON
+    w.Header().Set("Content-Type", "application/json")
+
+    // Encode the image objects as JSON and write the response
+    err = json.NewEncoder(w).Encode(images)
+    if err != nil {
+        log.Printf("Failed to encode image objects as JSON: %v", err)
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
 }
 
 // func main() {
@@ -197,62 +259,6 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 //     log.Println("Redirected to home page")
 // }
 // 
-// func handleHome(w http.ResponseWriter, r *http.Request) {
-//     log.Println("Handling request for /")
-// 
-//     // Create a new AWS session
-//     sess, err := session.NewSession(&aws.Config{
-//         Region: aws.String("us-east-2"),
-//     })
-//     if err != nil {
-//         log.Printf("Failed to create AWS session: %v", err)
-//         http.Error(w, err.Error(), http.StatusInternalServerError)
-//         return
-//     }
-//     log.Println("Created AWS session")
-// 
-//     // Create an S3 client
-//     svc := s3.New(sess)
-//     log.Println("Created S3 client")
-// 
-//     // List objects in the S3 bucket
-//     result, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{
-//         Bucket: aws.String("goserverbucket"),
-//     })
-//     if err != nil {
-//         log.Printf("Failed to list objects in S3 bucket: %v", err)
-//         http.Error(w, err.Error(), http.StatusInternalServerError)
-//         return
-//     }
-//     log.Printf("Listed %d objects in S3 bucket", len(result.Contents))
-// 
-//     // Create a slice to store the image URLs
-//     var imageURLs []string
-// 
-//     // Iterate over the objects and create the image URLs
-//     for _, obj := range result.Contents {
-//         imageURL := fmt.Sprintf("https://%s.s3.amazonaws.com/%s", "goserverbucket", *obj.Key)
-//         imageURLs = append(imageURLs, imageURL)
-//     }
-//     log.Printf("Created %d image URLs", len(imageURLs))
-// 
-//     // Create a template data structure
-//     data := struct {
-//         ImageURLs []string
-//     }{
-//         ImageURLs: imageURLs,
-//     }
-// 
-//     // Render the HTML template with the template data
-//     tmpl := template.Must(template.ParseFiles("index.html"))
-//     err = tmpl.Execute(w, data)
-//     if err != nil {
-//         log.Printf("Failed to render template: %v", err)
-//         http.Error(w, err.Error(), http.StatusInternalServerError)
-//         return
-//     }
-//     log.Println("Rendered template")
-// }
 
 // package main
 // 
