@@ -9,7 +9,7 @@ import (
     "github.com/aws/aws-sdk-go/aws/session"
     "github.com/aws/aws-sdk-go/service/s3/s3manager"
     "github.com/aws/aws-sdk-go/service/s3"
-    "os"
+//    "os"
 )
 
 //    "html/template"
@@ -90,23 +90,34 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
     
     defer file.Close()
 
-    var sess *session.Session
-
-    if os.Getenv("ENVIRONMENT") == "local" {
-        sess, err = session.NewSessionWithOptions(session.Options{
-            SharedConfigState: session.SharedConfigEnable,
-        })
-    } else {
-        // Use the default session for EC2 deployment
-        sess, err = session.NewSession(&aws.Config{
-            Region: aws.String("us-east-2"),
-        })
-    }
-
+    // Create a new AWS session
+    sess, err := session.NewSession(&aws.Config{
+        Region: aws.String("us-east-2"),
+    })
     if err != nil {
+        log.Printf("Failed to create AWS session: %v", err)
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
     }
+    log.Println("Created AWS session")
+
+//    var sess *session.Session
+//
+//    if os.Getenv("ENVIRONMENT") == "local" {
+//        sess, err = session.NewSessionWithOptions(session.Options{
+//            SharedConfigState: session.SharedConfigEnable,
+//        })
+//    } else {
+//        // Use the default session for EC2 deployment
+//        sess, err = session.NewSession(&aws.Config{
+//            Region: aws.String("us-east-2"),
+//        })
+//    }
+//
+//    if err != nil {
+//        http.Error(w, err.Error(), http.StatusInternalServerError)
+//        return
+//    }
 
     // Create a new AWS sessiom
     //    sess, err := session.NewSession(&aws.Config{
