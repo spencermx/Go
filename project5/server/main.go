@@ -9,10 +9,10 @@ import (
     "github.com/aws/aws-sdk-go/aws/session"
     "github.com/aws/aws-sdk-go/service/s3/s3manager"
     "github.com/aws/aws-sdk-go/service/s3"
+    "os"
 )
 
 //    "html/template"
-//    "os"
 
 type Person struct {
     ID   int    `json:"id"`
@@ -90,15 +90,33 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
     
     defer file.Close()
 
-    // Create a new AWS sessiom
-    sess, err := session.NewSession(&aws.Config{
-    	Region: aws.String("us-east-2"),
-    })
+    var sess *session.Session
+
+    if os.Getenv("ENVIRONMENT") == "local" {
+        sess, err = session.NewSessionWithOptions(session.Options{
+            SharedConfigState: session.SharedConfigEnable,
+        })
+    } else {
+        // Use the default session for EC2 deployment
+        sess, err = session.NewSession(&aws.Config{
+            Region: aws.String("us-east-2"),
+        })
+    }
 
     if err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
     }
+
+    // Create a new AWS sessiom
+    //    sess, err := session.NewSession(&aws.Config{
+    //    	Region: aws.String("us-east-2"),
+    //    })
+    //
+    //    if err != nil {
+    //        http.Error(w, err.Error(), http.StatusInternalServerError)
+    //        return
+    //    }
 
     // Create an S3 uploader
     uploader := s3manager.NewUploader(sess)
