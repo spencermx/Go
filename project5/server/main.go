@@ -1,18 +1,18 @@
 package main
 
 import (
-//    "fmt"
-//    "html/template"
+    "fmt"
     "log"
     "net/http"
     "encoding/json"
-//    "os"
-//
-//    "github.com/aws/aws-sdk-go/aws"
-//    "github.com/aws/aws-sdk-go/aws/session"
-//    "github.com/aws/aws-sdk-go/service/s3"
-//    "github.com/aws/aws-sdk-go/service/s3/s3manager"
+    "github.com/aws/aws-sdk-go/aws"
+    "github.com/aws/aws-sdk-go/aws/session"
+    "github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
+
+//    "html/template"
+//    "os"
+//    "github.com/aws/aws-sdk-go/service/s3"
 
 type Person struct {
     ID   int    `json:"id"`
@@ -26,6 +26,8 @@ func main() {
     http.Handle("/", fs)
 
     http.HandleFunc("/getPeople", getPeople)
+
+    http.HandleFunc("/upload", handleUpload)
 
     log.Println("Server running on http://localhost:8080")
 
@@ -48,6 +50,51 @@ func getPeople(w http.ResponseWriter, r *http.Request) {
 
     // Encode the `people` slice as JSON and write it to the response
     json.NewEncoder(w).Encode(people)
+}
+
+func handleUpload(w http.ResponseWriter, r *http.Request) {
+    // Parse the multipart form
+    err := r.ParseMultipartForm(10 << 20) // Max size of 10MB
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+
+    // Get the uploaded file
+    file, header, err := r.FormFile("file")
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+    
+    defer file.Close()
+
+    // Create a new AWS session
+    sess, err := session.NewSession(&aws.Config{
+    	Region: aws.String("us-east-2"),
+    })
+
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    // Create an S3 uploader
+    uploader := s3manager.NewUploader(sess)
+
+    // Upload the file to S3
+    _, err = uploader.Upload(&s3manager.UploadInput{
+        Bucket: aws.String("goserverbucket"),
+        Key:    aws.String(header.Filename),
+        Body:   file,
+    })
+
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    fmt.Fprintf(w, "File uploaded successfully")
 }
 
 // func main() {
@@ -286,50 +333,6 @@ func getPeople(w http.ResponseWriter, r *http.Request) {
 //     }
 // }
 // 
-// func handleUpload(w http.ResponseWriter, r *http.Request) {
-//     // Parse the multipart form
-//     err := r.ParseMultipartForm(10 << 20) // Max size of 10MB
-//     if err != nil {
-//         http.Error(w, err.Error(), http.StatusBadRequest)
-//         return
-//     }
-// 
-//     // Get the uploaded file
-//     file, header, err := r.FormFile("file")
-//     if err != nil {
-//         http.Error(w, err.Error(), http.StatusBadRequest)
-//         return
-//     }
-//     
-//     defer file.Close()
-// 
-//     // Create a new AWS session
-//     sess, err := session.NewSession(&aws.Config{
-//     	Region: aws.String("us-east-2"),
-//     })
-// 
-//     if err != nil {
-//         http.Error(w, err.Error(), http.StatusInternalServerError)
-//         return
-//     }
-// 
-//     // Create an S3 uploader
-//     uploader := s3manager.NewUploader(sess)
-// 
-//     // Upload the file to S3
-//     _, err = uploader.Upload(&s3manager.UploadInput{
-//         Bucket: aws.String("goserverbucket"),
-//         Key:    aws.String(header.Filename),
-//         Body:   file,
-//     })
-// 
-//     if err != nil {
-//         http.Error(w, err.Error(), http.StatusInternalServerError)
-//         return
-//     }
-// 
-//     fmt.Fprintf(w, "File uploaded successfully")
-// }
 // 
 // // func main() {
 // //     // Create a new session using the default AWS configuration
