@@ -28,7 +28,21 @@ type Image struct {
 func main() {
     fs := http.FileServer(http.Dir("../client/build/"))
 
-    http.Handle("/", fs)
+//    http.Handle("/", fs)
+
+    // Create a route handler that serves the static files and fallbacks to index.html
+    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+        // Check if the requested file exists
+        _, err := http.Dir("../client/build").Open(r.URL.Path)
+        if err != nil {
+            // If the file doesn't exist, serve index.html
+            http.ServeFile(w, r, "../client/build/index.html")
+            return
+        }
+
+        // If the file exists, serve it
+        fs.ServeHTTP(w, r)
+    })
 
     http.HandleFunc("/getPeople", getPeople)
 

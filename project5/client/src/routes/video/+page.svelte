@@ -25,7 +25,7 @@
       }
     } catch (error) {
       console.error('Error fetching images:', error);
-    }
+   }
   });
 </script>
 
