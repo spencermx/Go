@@ -5,6 +5,7 @@ import (
 //    "html/template"
     "log"
     "net/http"
+    "encoding/json"
 //    "os"
 //
 //    "github.com/aws/aws-sdk-go/aws"
@@ -12,16 +13,43 @@ import (
 //    "github.com/aws/aws-sdk-go/service/s3"
 //    "github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
+
+type Person struct {
+    ID   int    `json:"id"`
+    Name string `json:"name"`
+    Age  int    `json:"age"`
+}
+
 func main() {
     fs := http.FileServer(http.Dir("../client/build/"))
+
     http.Handle("/", fs)
 
+    http.HandleFunc("/getPeople", getPeople)
+
     log.Println("Server running on http://localhost:8080")
+
     err := http.ListenAndServe(":8080", nil)
     if err != nil {
         log.Fatal(err)
     }
 }
+
+func getPeople(w http.ResponseWriter, r *http.Request) {
+    // Initialize the in-memory data structure with some sample data
+    people := []Person{
+        {ID: 1, Name: "John Doe", Age: 30},
+        {ID: 2, Name: "Jane Smith", Age: 25},
+        {ID: 3, Name: "Bob Johnson", Age: 35},
+    }
+
+    // Set the response content type to JSON
+    w.Header().Set("Content-Type", "application/json")
+
+    // Encode the `people` slice as JSON and write it to the response
+    json.NewEncoder(w).Encode(people)
+}
+
 // func main() {
 //     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 //         http.ServeFile(w, r, "static/index.html")
