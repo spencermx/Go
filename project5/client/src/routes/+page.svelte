@@ -1,5 +1,5 @@
 <script>
-  const maintenanceMessage = "We are currently performing maintenance to address AWS S3 bucket attacks and implement rate limiting. We apologize for any inconvenience caused and appreciate your patience. Please check back later.";
+  const maintenanceMessage = "We are currently performing maintenance to address AWS S3 bucket vulnerabilities. We apologize for any inconvenience caused and appreciate your patience. Please check back later.";
 </script>
 
 <style>
