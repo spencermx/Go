@@ -27,7 +27,7 @@
 </style>
 
 <div class="container">
-  <h1>Down for Maintenance (May 6th 2024)</h1>
+  <h1>Down for Maintenance (May 7th 2024)</h1>
   <p>{maintenanceMessage}</p>
 </div>
 
