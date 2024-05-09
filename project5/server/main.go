@@ -10,9 +10,15 @@ import (
     "github.com/aws/aws-sdk-go/service/s3/s3manager"
     "github.com/aws/aws-sdk-go/service/s3"
     "os"
+    "time"
+    "golang.org/x/time/rate"
 )
 
 //    "html/template"
+var (
+    // Create a rate limiter with a maximum of 10 requests per minute
+    limiter = rate.NewLimiter(rate.Every(time.Minute), 2)
+)
 
 type Person struct {
     ID   int    `json:"id"`
@@ -74,6 +80,13 @@ func getPeople(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleUpload(w http.ResponseWriter, r *http.Request) {
+
+    // Check if the request is allowed by the rate limiter
+    if !limiter.Allow() {
+        http.Error(w, "Too many requests", http.StatusTooManyRequests)
+        return
+    }
+
     // Parse the multipart form
     err := r.ParseMultipartForm(10 << 20) // Max size of 10MB
     if err != nil {
