@@ -3,6 +3,7 @@
 
   let people = [];
   let images = [];
+  let selectedFile = null;
 
   onMount(async () => {
     try {
@@ -47,11 +48,11 @@
             <div class="image-item">
               <img src={image.url} alt={image.alt} />
               <div class="image-overlay">
-                {#if image.title}
-                  <h3>{image.title}</h3>
+                {#if image.alt}
+                  <h3>{image.alt}</h3>
                 {/if}
-                {#if image.description}
-                  <p>{image.description}</p>
+                {#if image.alt}
+                  <p>{image.alt}</p>
                 {/if}
               </div>
             </div>
@@ -63,7 +64,14 @@
         <h2>Upload Image</h2>
         <form action="/upload" method="post" enctype="multipart/form-data">
           <label for="file-input" class="file-label">Choose File</label>
-          <input type="file" name="file" id="file-input" class="file-input" />
+          <input type="file" name="file" id="file-input" class="file-input" bind:files={selectedFile} />
+
+          <div class="file-preview">
+            {#if selectedFile}
+              <img src={URL.createObjectURL(selectedFile[0])} alt="Selected File" />
+            {/if}
+          </div>
+
           <button type="submit" class="upload-button">Upload</button>
         </form>
       </section>
@@ -201,6 +209,14 @@
     padding: 20px;
     text-align: center;
     margin-top: 40px;
+  }
+  .file-preview {
+    margin-top: 10px;
+  }
+
+  .file-preview img {
+    max-width: 200px;
+    max-height: 200px;
   }
 </style>
 

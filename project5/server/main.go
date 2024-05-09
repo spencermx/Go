@@ -179,6 +179,7 @@ func getImages(w http.ResponseWriter, r *http.Request) {
 
     // Set the response content type to JSON
     w.Header().Set("Content-Type", "application/json")
+    //w.Header().Set("Cache-Control", "public, max-age=3600") // Cache for 1 hour
 
     // Encode the image objects as JSON and write the response
     err = json.NewEncoder(w).Encode(images)
