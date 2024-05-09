@@ -1,37 +1,4 @@
-<script>
-  const maintenanceMessage = "We are currently performing maintenance to address AWS S3 bucket vulnerabilities. We apologize for any inconvenience caused and appreciate your patience. Please check back later.";
-</script>
-
-<style>
-  .container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    background-color: #f8f8f8;
-    font-family: Arial, sans-serif;
-    text-align: center;
-  }
-
-  h1 {
-    font-size: 24px;
-    margin-bottom: 20px;
-  }
-
-  p {
-    font-size: 18px;
-    max-width: 500px;
-    margin-bottom: 30px;
-  }
-</style>
-
-<div class="container">
-  <h1>Down for Maintenance (May 7th 2024)</h1>
-  <p>{maintenanceMessage}</p>
-</div>
-
-<!--<script> 
+<script> 
   import { onMount } from 'svelte';
 
   let people = [];
@@ -236,4 +203,39 @@
     text-align: center;
     margin-top: 40px;
   }
-</style>-->
+</style>
+
+<!--<script>
+  const maintenanceMessage = "We are currently performing maintenance to address AWS S3 bucket vulnerabilities. We apologize for any inconvenience caused and appreciate your patience. Please check back later.";
+</script>
+
+<style>
+  .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background-color: #f8f8f8;
+    font-family: Arial, sans-serif;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+
+  p {
+    font-size: 18px;
+    max-width: 500px;
+    margin-bottom: 30px;
+  }
+</style>
+
+<div class="container">
+  <h1>Down for Maintenance (May 7th 2024)</h1>
+  <p>{maintenanceMessage}</p>
+</div>-->
+
+
