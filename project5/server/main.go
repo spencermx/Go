@@ -83,7 +83,7 @@ func main() {
         }()
 
         log.Printf("HTTPS server running on :%s\n", port)
-        err := http.ListenAndServeTLS(":"+port, "path/to/cert.pem", "path/to/key.pem", nil)
+        err := http.ListenAndServeTLS(":"+port, "/etc/apache2/ssl/cert.pem", "/etc/apache2/ssl/key.pem", nil)
         if err != nil {
             log.Fatalf("HTTPS server ListenAndServeTLS: %v", err)
         }
