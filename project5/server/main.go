@@ -57,41 +57,41 @@ func main() {
 
     http.HandleFunc("/getImages", getImages)
       
-//    log.Println("Server running on http://localhost:8080")
-//
-//    err := http.ListenAndServe(":8080", nil)
-//    if err != nil {
-//        log.Fatal(err)
-//    }
+    log.Println("Server running on http://localhost:8080")
 
-    // Get the environment variable for the server environment
-    env := os.Getenv("SERVER_ENV")
-
-    // Set the default port for local development
-    port := "8080"
-
-    // Check if the server is running in the deployed environment
-    if env == "production" {
-        // Use the specified port for the deployed server
-        port = "8443"
-
-        // Set up HTTPS server with SSL/TLS certificates
-        go func() {
-            httpPort := "8080"
-            log.Printf("HTTP server running on :%s\n", httpPort)
-            http.ListenAndServe(":"+httpPort, http.HandlerFunc(redirectToHTTPS))
-        }()
-
-        log.Printf("HTTPS server running on :%s\n", port)
-        err := http.ListenAndServeTLS(":"+port, "/etc/apache2/ssl/cert.pem", "/etc/apache2/ssl/key.pem", nil)
-        if err != nil {
-            log.Fatalf("HTTPS server ListenAndServeTLS: %v", err)
-        }
-    } else {
-        // Local development environment
-        log.Printf("Server running on http://localhost:%s\n", port)
-        http.ListenAndServe(":"+port, nil)
+    err := http.ListenAndServe(":8080", nil)
+    if err != nil {
+        log.Fatal(err)
     }
+
+//    // Get the environment variable for the server environment
+//    env := os.Getenv("SERVER_ENV")
+//
+//    // Set the default port for local development
+//    port := "8080"
+//
+//    // Check if the server is running in the deployed environment
+//    if env == "production" {
+//        // Use the specified port for the deployed server
+//        port = "8443"
+//
+//        // Set up HTTPS server with SSL/TLS certificates
+//        go func() {
+//            httpPort := "8080"
+//            log.Printf("HTTP server running on :%s\n", httpPort)
+//            http.ListenAndServe(":"+httpPort, http.HandlerFunc(redirectToHTTPS))
+//        }()
+//
+//        log.Printf("HTTPS server running on :%s\n", port)
+//        err := http.ListenAndServeTLS(":"+port, "/etc/apache2/ssl/cert.pem", "/etc/apache2/ssl/key.pem", nil)
+//        if err != nil {
+//            log.Fatalf("HTTPS server ListenAndServeTLS: %v", err)
+//        }
+//    } else {
+//        // Local development environment
+//        log.Printf("Server running on http://localhost:%s\n", port)
+//        http.ListenAndServe(":"+port, nil)
+//    }
 }
 
 func redirectToHTTPS(w http.ResponseWriter, r *http.Request) {
