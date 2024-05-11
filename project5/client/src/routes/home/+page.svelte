@@ -71,14 +71,14 @@
 
       <section class="upload">
         <h2>Upload Video</h2>
-        <form action="/upload" method="post" enctype="multipart/form-data">
+        <form action="/uploadVideo" method="post" enctype="multipart/form-data">
           <label for="file-input" class="file-label">Choose File</label>
-          <input type="file" name="file" id="file-input" class="file-input" bind:files={selectedFile} />
+          <input type="file" name="file" id="file-input" class="file-input" bind:files={selectedFile} accept="video/*" required/>
+          {#if selectedFile}
           <div class="file-preview">
-            {#if selectedFile}
               <video src={URL.createObjectURL(selectedFile[0])} controls></video>
-            {/if}
           </div>
+          {/if}
           <button type="submit" class="upload-button">Upload</button>
         </form>
       </section>
@@ -87,6 +87,7 @@
 </body>
 
 <style>
+
   body {
     display: flex;
     flex-direction: column;
@@ -234,5 +235,18 @@
     max-width: 100%;
     max-height: 200px;
     object-fit: cover;
+  }
+  .file-preview {
+    margin-top: 20px;
+    border: 1px solid #ccc;
+    padding: 10px;
+    background-color: #f5f5f5;
+    text-align: center;
+  }
+
+  .file-preview video {
+    max-width: 300px; /* Set the maximum width */
+    max-height: 200px; /* Set the maximum height */
+    object-fit: contain; /* Maintain aspect ratio */
   }
 </style>

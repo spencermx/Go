@@ -161,6 +161,15 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+    /**************************************************************************************************/
+    // NEW VIDEO VALIDATION
+    var multipartFile *MultipartFile = &MultipartFile { File: file }
+
+    if !multipartFile.IsVideo() {
+        http.Error(w, "The selected file must be a video", http.StatusBadRequest)
+		return
+    }
+    /**************************************************************************************************/
 	defer file.Close()
 
 	// Create a new AWS session
