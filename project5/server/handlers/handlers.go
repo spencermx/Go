@@ -7,13 +7,15 @@ import (
 	"net/http"
 	"os"
 	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"golang.org/x/time/rate"
-//    "github.com/gorilla/handlers"
-// "html/template"
+	//	"github.com/gorilla/handlers"
+	//
+	// "html/template"
 )
 
 // GLOBAL VARIABLES
@@ -35,10 +37,11 @@ type Image struct {
 	Alt string `json:"alt"`
 }
 
-
-
-
 func GetPeople(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodGet {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
 	// Initialize the in-memory data structure with some sample data
 	people := []Person{
 		{ID: 1, Name: "John Doe", Age: 30},
@@ -53,7 +56,89 @@ func GetPeople(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(people)
 }
 
-func HandleUpload(w http.ResponseWriter, r *http.Request) {
+func UploadImage(w http.ResponseWriter, r *http.Request) {
+  	log.Printf("/uploadImage")
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+	// Check if the request is allowed by the rate limiter
+	if !limiter.Allow() {
+		http.Error(w, "Too many requests", http.StatusTooManyRequests)
+		return
+	}
+
+	// Parse the multipart form
+	err := r.ParseMultipartForm(10 << 20) // Max size of 10MB
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+
+    /**************************************************************************************************/
+    // First Image Validation Check, may become obsolete after fileheader checks
+    // var fileName *File = &File { Key: header.Filename } 
+
+	// if (err != nil || !fileName.IsImage()) {
+	// 	http.Error(w, err.Error(), http.StatusBadRequest)
+	// 	return
+	// }
+    /**************************************************************************************************/
+
+    /**************************************************************************************************/
+    // NEW IMAGE VALIDATION
+    var multipartFile *MultipartFile = &MultipartFile { File: file }
+
+    if !multipartFile.IsImage() {
+        http.Error(w, "The selected file must be an image", http.StatusBadRequest)
+		return
+    }
+    /**************************************************************************************************/
+
+    /**************************************************************************************************/
+
+	defer file.Close()
+
+	// Create a new AWS session
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String(AWS_REGION),
+	})
+
+	if err != nil {
+		log.Printf("Failed to create AWS session: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Println("Created AWS session")
+
+	// Create an S3 uploader
+	uploader := s3manager.NewUploader(sess)
+
+	// Upload the file to S3
+	_, err = uploader.Upload(&s3manager.UploadInput{
+		Bucket: aws.String(os.Getenv("BUCKET_NAME")),
+		Key:    aws.String(header.Filename),
+		Body:   file,
+	})
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "File uploaded successfully")
+}
+
+func UploadVideo(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
 	// Check if the request is allowed by the rate limiter
 	if !limiter.Allow() {
 		http.Error(w, "Too many requests", http.StatusTooManyRequests)
@@ -108,8 +193,12 @@ func HandleUpload(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprintf(w, "File uploaded successfully")
 }
-
 func GetImages(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodGet {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
 	log.Println("Handling request for /getImages")
 
 	// Create a new AWS session
@@ -171,6 +260,10 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetVideos(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodGet {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    } 
 	log.Println("Handling request for /getVideos")
 
 	// Create a new AWS session

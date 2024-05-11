@@ -62,9 +62,11 @@
 
       <section class="upload">
         <h2>Upload Image</h2>
-        <form action="/upload" method="post" enctype="multipart/form-data">
+        <form action="/uploadImage" method="post" enctype="multipart/form-data">
           <label for="file-input" class="file-label">Choose File</label>
-          <input type="file" name="file" id="file-input" class="file-input" bind:files={selectedFile} />
+          <!-- accept="image/*" required-->
+          <input type="file" name="file" id="file-input" class="file-input" bind:files={selectedFile} accept="image/*" required/>
+
 
           <div class="file-preview">
             {#if selectedFile}
