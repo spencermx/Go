@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 
     "goserver/common"
-	//"github.com/google/uuid"
 	//	"github.com/gorilla/handlers"
 	// "html/template"
 )
@@ -90,7 +89,7 @@ func (s *AwsS3) GetCloudFrontUrls() ([]*common.FileUrl, error) {
     var cloudFrontUrls []*common.FileUrl
 
     for _, bucketKey := range bucketKeys {
-        fileUrl := &common.FileUrl{ BucketKey: *bucketKey, RootUrl: "https://d271tjczb1hjof.cloudfront.net/" }
+        fileUrl := common.NewFileUrlWithDefaultRootUrl(*bucketKey)
 
         cloudFrontUrls = append(cloudFrontUrls, fileUrl)
     }

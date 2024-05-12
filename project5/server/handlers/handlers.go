@@ -194,10 +194,10 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
     var bucketName string = os.Getenv("BUCKET_NAME")
     
     //uuid, _ := uuid.NewRandom()
+
     var uuid string = "9e1e2dd4-c836-43af-ba21-090b9a1032d3"
     key := fmt.Sprintf("%s-%s", uuid, header.Filename)
 
-    
 	// Upload the file to S3
 	// _, err = uploader.Upload(&s3manager.UploadInput{
 	// 	Bucket: aws.String(bucketName),
@@ -226,7 +226,7 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
         },
         OutputBucketName: aws.String(bucketName),
         OutputKey:        aws.String(videoTranscriptOutput),
-        TranscriptionJobName:  aws.String("TranscriptJobName-" + uuid), 
+        TranscriptionJobName:  aws.String("TranscriptionJobName-" + uuid), 
         LanguageCode:     aws.String("en-US"), // Set the language code
         // Set any other necessary options
     }

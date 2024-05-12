@@ -3,11 +3,23 @@ package common
 import (
     "path/filepath"
     "strings"
+	"github.com/google/uuid"
 )
 
 // File represents a file object
 type BucketKey struct {
     Key string // File Key including the extension ex. "hello.png" "accounts/spencer/temp.png"  
+}
+
+func (f *BucketKey) GetGuid() uuid.UUID {
+    fileName := f.GetFileNameWithoutExtension()
+
+    uuidString := fileName[:36]
+    
+    // Parse the UUID string
+    parsedUUID, _ := uuid.Parse(uuidString)
+
+    return parsedUUID
 }
 
 func (f *BucketKey) GetFileNameWithoutExtension() string {
