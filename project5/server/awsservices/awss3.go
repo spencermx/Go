@@ -1,13 +1,19 @@
 package awsservices
 
 import (
+	"io"
 	"log"
-    "io"
+	"mime/multipart"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/google/uuid"
 
-    "goserver/common"
+	"errors"
+	"goserver/common"
+	"strings"
 	//	"github.com/gorilla/handlers"
 	// "html/template"
 )
@@ -21,14 +27,16 @@ var (
 type AwsS3 struct {
 	AwsSession *session.Session
 	S3Client   *s3.S3
+    S3Manager  *s3manager.Uploader
 	BucketName string
 	Region     string
 }
 
-func NewAwsS3(awsSession *session.Session, s3Client *s3.S3, bucketName string, region string) *AwsS3 {
+func NewAwsS3(awsSession *session.Session, s3Client *s3.S3, s3manager *s3manager.Uploader, bucketName string, region string) *AwsS3 {
 	return &AwsS3{
 		AwsSession: awsSession,
         S3Client: s3Client,
+        S3Manager: s3manager,
 		BucketName: bucketName,
 		Region:     region,
 	}
@@ -96,3 +104,61 @@ func (s *AwsS3) GetCloudFrontUrls() ([]*common.FileUrl, error) {
 
     return cloudFrontUrls, nil
 }
+
+func (s *AwsS3) GetKeysByGuid(uuid uuid.UUID) ([]*common.BucketKey, error) {
+    bucketKeys, err := s.GetKeys()
+
+    if err != nil {
+        return nil, err
+    }
+
+    var bucketsKeysForGuid []*common.BucketKey
+
+    for _, bucketKey := range bucketKeys {
+        if strings.Contains(bucketKey.Key, uuid.String()) {
+            bucketsKeysForGuid = append(bucketsKeysForGuid, bucketKey)
+        } 
+    }
+
+    if len(bucketsKeysForGuid) == 0 {
+        return nil, errors.New("no bucket keys found containing that guid")
+    }
+
+    return bucketsKeysForGuid, nil
+}
+
+
+func (s *AwsS3) UploadFile(bucketKey string, file multipart.File) error {
+    _, err := s.S3Manager.Upload(&s3manager.UploadInput{
+		Bucket: aws.String(s.BucketName),
+		Key:    aws.String(bucketKey),
+		Body:   file,
+	})
+
+	if err != nil {
+        return err
+	}
+
+    return nil
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

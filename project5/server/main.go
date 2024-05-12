@@ -29,9 +29,9 @@ func main() {
 
     http.HandleFunc("/getPeople", handlers.GetPeople)
 
-//    http.HandleFunc("/uploadImage", handlers.UploadImage)
+    http.HandleFunc("/uploadImage", handlers.UploadImage)
 
- //   http.HandleFunc("/uploadVideo", handlers.UploadVideo)
+    http.HandleFunc("/uploadVideo", handlers.UploadVideo)
 
     http.HandleFunc("/getImages", handlers.GetImages)
 

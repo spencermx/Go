@@ -81,27 +81,12 @@ func UploadImage(w http.ResponseWriter, r *http.Request) {
 
 	file, header, err := r.FormFile("file")
 
-    /**************************************************************************************************/
-    // First Image Validation Check, may become obsolete after fileheader checks
-    // var fileName *File = &File { Key: header.Filename } 
-
-	// if (err != nil || !fileName.IsImage()) {
-	// 	http.Error(w, err.Error(), http.StatusBadRequest)
-	// 	return
-	// }
-    /**************************************************************************************************/
-
-    /**************************************************************************************************/
-    // NEW IMAGE VALIDATION
     var multipartFile *MultipartFile = &MultipartFile { File: file }
 
     if !multipartFile.IsImage() {
         http.Error(w, "The selected file must be an image", http.StatusBadRequest)
 		return
     }
-    /**************************************************************************************************/
-
-    /**************************************************************************************************/
 
 	defer file.Close()
 
@@ -118,20 +103,21 @@ func UploadImage(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Created AWS session")
 
-	// Create an S3 uploader
-	uploader := s3manager.NewUploader(sess)
+    var uploader *s3manager.Uploader = s3manager.NewUploader(sess)
 
-	// Upload the file to S3
-	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(os.Getenv("BUCKET_NAME")),
-		Key:    aws.String(header.Filename),
-		Body:   file,
-	})
+    bucketName := os.Getenv("BUCKET_NAME")
 
-	if err != nil {
+    var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, nil, uploader, bucketName, AWS_REGION)  
+
+    bucketKey := uuid.New().String() + "-" + header.Filename
+
+    err = awsS3.UploadFile(bucketKey, file)
+
+    if err != nil {
+		log.Printf("Failed to upload file: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	}
+    }
 
 	fmt.Fprintf(w, "File uploaded successfully")
 }
@@ -188,29 +174,27 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Created AWS session")
 
-	// Create an S3 uploader
-	uploader := s3manager.NewUploader(sess)
+    var uploader *s3manager.Uploader = s3manager.NewUploader(sess)
 
-    var bucketName string = os.Getenv("BUCKET_NAME")
-    
-    uuid, _ := uuid.NewRandom()
+    bucketName := os.Getenv("BUCKET_NAME")
 
-    //var uuid string = "9e1e2dd4-c836-43af-ba21-090b9a1032d3"
-    key := fmt.Sprintf("%s-%s", uuid, header.Filename)
+    var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, nil, uploader, bucketName, AWS_REGION)  
 
-	// Upload the file to S3
-	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(bucketName),
-		Key:    aws.String(key),
-		Body:   file,
-	})
+    //key := fmt.Sprintf("%s-%s", uuid, header.Filename)
+    bucketKey := uuid.New().String() + "-" + header.Filename
 
-	if err != nil {
+    err = awsS3.UploadFile(bucketKey, file)
+
+    if err != nil {
+		log.Printf("Failed to upload file: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	}
+    }
 
-	fmt.Fprintf(w, "File uploaded successfully")
+    // fmt.Fprintf(w, "File uploaded successfully")
+
+
+    //var uuid string = "9e1e2dd4-c836-43af-ba21-090b9a1032d3"
 
     // Create a new Amazon Transcribe client
     // log.Printf("Creating Amazon Transcription Client")
@@ -298,7 +282,7 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 
     var bucketName string = os.Getenv("BUCKET_NAME")
     
-    var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, s3Client, bucketName, AWS_REGION)  
+    var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, s3Client, nil, bucketName, AWS_REGION)  
 
     cloudFrontUrls, err := awsS3.GetCloudFrontUrls()
 
@@ -354,7 +338,7 @@ func GetVideos(w http.ResponseWriter, r *http.Request) {
 
     var bucketName string = os.Getenv("BUCKET_NAME")
     
-    var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, s3Client, bucketName, AWS_REGION)  
+    var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, s3Client, nil, bucketName, AWS_REGION)  
 
     cloudFrontUrls, err := awsS3.GetCloudFrontUrls()
 
@@ -364,7 +348,7 @@ func GetVideos(w http.ResponseWriter, r *http.Request) {
         if cloudFrontUrl.BucketKey.IsVideo() {
             clientItem := &common.ClientItem { 
                 CloudFrontUrl: cloudFrontUrl.GetUrl(),
-                FileName: cloudFrontUrl.BucketKey.GetFileNameWithoutExtension(),
+                FileName: cloudFrontUrl.BucketKey.GetFileNameWithoutExtensionAndGuid(),
             }    
 
             clientItems = append(clientItems, *clientItem)
