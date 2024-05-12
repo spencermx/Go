@@ -12,7 +12,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go/service/transcribeservice"
 	"golang.org/x/time/rate"
+
+	"goserver/awsservices"
+	"goserver/common"
+	//"github.com/google/uuid"
 	//	"github.com/gorilla/handlers"
 	//
 	// "html/template"
@@ -20,6 +25,7 @@ import (
 
 // GLOBAL VARIABLES
 var AWS_REGION string = "us-east-2"
+var MAX_FILE_SIZE int64 = 150 << 20 // 150MB
 
 var (
 	// Create a rate limiter with a maximum of 10 requests per minute
@@ -32,10 +38,6 @@ type Person struct {
 	Age  int    `json:"age"`
 }
 
-type Image struct {
-	URL string `json:"url"`
-	Alt string `json:"alt"`
-}
 
 func GetPeople(w http.ResponseWriter, r *http.Request) {
     if r.Method != http.MethodGet {
@@ -70,7 +72,7 @@ func UploadImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse the multipart form
-	err := r.ParseMultipartForm(10 << 20) // Max size of 10MB
+	err := r.ParseMultipartForm(MAX_FILE_SIZE) 
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -146,7 +148,7 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse the multipart form
-	err := r.ParseMultipartForm(10 << 20) // Max size of 10MB
+	err := r.ParseMultipartForm(MAX_FILE_SIZE)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -170,6 +172,7 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 		return
     }
     /**************************************************************************************************/
+
 	defer file.Close()
 
 	// Create a new AWS session
@@ -186,29 +189,95 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 	log.Println("Created AWS session")
 
 	// Create an S3 uploader
-	uploader := s3manager.NewUploader(sess)
+	//uploader := s3manager.NewUploader(sess)
 
+    var bucketName string = os.Getenv("BUCKET_NAME")
+    
+    //uuid, _ := uuid.NewRandom()
+    var uuid string = "9e1e2dd4-c836-43af-ba21-090b9a1032d3"
+    key := fmt.Sprintf("%s-%s", uuid, header.Filename)
+
+    
 	// Upload the file to S3
-	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(os.Getenv("BUCKET_NAME")),
-		Key:    aws.String(header.Filename),
-		Body:   file,
-	})
+	// _, err = uploader.Upload(&s3manager.UploadInput{
+	// 	Bucket: aws.String(bucketName),
+	// 	Key:    aws.String(key),
+	// 	Body:   file,
+	// })
 
-	if err != nil {
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
+
+    // Create a new Amazon Transcribe client
+    log.Printf("Creating Amazon Transcription Client")
+
+    transcribeClient := transcribeservice.New(sess)
+
+    log.Printf("Successfully Created Amazon Transcription Client")
+    
+    var videoS3Uri string = fmt.Sprintf("s3://%s/%s", bucketName, key)
+    var videoTranscriptOutput string = fmt.Sprintf("%s-transcription-output.json", uuid)
+    
+    transcriptionJobInput := &transcribeservice.StartTranscriptionJobInput{
+        Media: &transcribeservice.Media{
+            MediaFileUri: aws.String(videoS3Uri),
+        },
+        OutputBucketName: aws.String(bucketName),
+        OutputKey:        aws.String(videoTranscriptOutput),
+        TranscriptionJobName:  aws.String("TranscriptJobName-" + uuid), 
+        LanguageCode:     aws.String("en-US"), // Set the language code
+        // Set any other necessary options
+    }
+
+    _, err = transcribeClient.StartTranscriptionJob(transcriptionJobInput)
+
+    if err != nil {
+		log.Printf("Transcription failure: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	}
+    }
 
 	fmt.Fprintf(w, "File uploaded successfully")
+
+    // Save the transcription job name for later use
+
+//    transcriptionjobname := transcriptionjoboutput.transcriptionjob.transcriptionjobname
+//   // wait for the transcription job to complete
+//    for {
+//        jobstatusoutput, err := transcribeclient.gettranscriptionjob(&transcribeservice.gettranscriptionjobinput{
+//            transcriptionjobname: transcriptionjobname,
+//        })
+//        if err != nil {
+//            log.printf("failed to get transcription job status: %v", err)
+//            http.error(w, err.error(), http.statusinternalservererror)
+//            return
+//        }
+//
+//        jobstatus := *jobstatusoutput.transcriptionjob.transcriptionjobstatus
+//
+//        if jobstatus == transcribeservice.transcriptionjobstatuscompleted {
+//            log.printf("transcription job %s completed successfully", *transcriptionjobname)
+//            break
+//        } else if jobstatus == transcribeservice.transcriptionjobstatusfailed {
+//            log.printf("transcription job %s failed with status %s", *transcriptionjobname, jobstatus)
+//            http.error(w, fmt.sprintf("transcription job failed with status %s", jobstatus), http.statusinternalservererror)
+//            return
+//        } else {
+//            log.printf("transcription job %s is in progress with status %s", *transcriptionjobname, jobstatus)
+//            time.sleep(5 * time.second) // wait for a few seconds before checking again
+//        }
+//    }
 }
+
 func GetImages(w http.ResponseWriter, r *http.Request) {
+	log.Println("Handling request for /getImages")
+
     if r.Method != http.MethodGet {
         http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
         return
     }
-
-	log.Println("Handling request for /getImages")
 
 	// Create a new AWS session
 	sess, err := session.NewSession(&aws.Config{
@@ -219,48 +288,38 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	log.Println("Created AWS session")
 
 	// Create an S3 client
-	svc := s3.New(sess)
+	s3Client := s3.New(sess)
 	log.Println("Created S3 client")
 
-	// List objects in the S3 bucket
-	result, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{
-		Bucket: aws.String(os.Getenv("BUCKET_NAME")),
-	})
-	if err != nil {
-		log.Printf("Failed to list objects in S3 bucket: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	log.Printf("Listed %d objects in S3 bucket", len(result.Contents))
+    var bucketName string = os.Getenv("BUCKET_NAME")
+    
+    var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, s3Client, bucketName, AWS_REGION)  
 
-	// Create a slice to store the image objects
-	var images []Image
+    cloudFrontUrls, err := awsS3.GetCloudFrontUrls()
 
-	//  imageURL := fmt.Sprintf("https://%s.s3.amazonaws.com/%s", "goserverbucket", *obj.Key)
-	// Iterate over the objects and create the image objects
-	for _, obj := range result.Contents {
-        file := &File { Key: *obj.Key } 
+    var clientItems []common.ClientItem
 
-        if file.IsImage() {
-            imageURL := fmt.Sprintf("https://d271tjczb1hjof.cloudfront.net/%s", file.Key)
-            image := Image{
-                URL: imageURL,
-                Alt: file.Key, // Use the object key as the alt text
-            }
-            images = append(images, image)
+    for _, cloudFrontUrl := range cloudFrontUrls {
+        if cloudFrontUrl.BucketKey.IsImage() {
+            clientItem := &common.ClientItem { 
+                CloudFrontUrl: cloudFrontUrl.GetUrl(),
+                FileName: cloudFrontUrl.BucketKey.GetFileNameWithoutExtension(),
+            }    
+
+            clientItems = append(clientItems, *clientItem)
         }
-	}
-	log.Printf("Created %d image objects", len(images))
+    }
 
 	// Set the response content type to JSON
 	w.Header().Set("Content-Type", "application/json")
 	// w.Header().Set("Cache-Control", "public, max-age=3600") // Cache for 1 hour
 
 	// Encode the image objects as JSON and write the response
-	err = json.NewEncoder(w).Encode(images)
+	err = json.NewEncoder(w).Encode(clientItems)
 	if err != nil {
 		log.Printf("Failed to encode image objects as JSON: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -269,17 +328,17 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetVideos(w http.ResponseWriter, r *http.Request) {
+	log.Println("Handling request for /getVideos")
+
     if r.Method != http.MethodGet {
         http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
         return
-    } 
-	log.Println("Handling request for /getVideos")
+    }
 
 	// Create a new AWS session
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String(AWS_REGION),
 	})
-
 	if err != nil {
 		log.Printf("Failed to create AWS session: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -289,50 +348,36 @@ func GetVideos(w http.ResponseWriter, r *http.Request) {
 	log.Println("Created AWS session")
 
 	// Create an S3 client
-	svc := s3.New(sess)
+	s3Client := s3.New(sess)
 	log.Println("Created S3 client")
 
-	// List objects in the S3 bucket
-	result, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{
-		Bucket: aws.String(os.Getenv("BUCKET_NAME")),
-	})
+    var bucketName string = os.Getenv("BUCKET_NAME")
+    
+    var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, s3Client, bucketName, AWS_REGION)  
 
-	if err != nil {
-		log.Printf("Failed to list objects in S3 bucket: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+    cloudFrontUrls, err := awsS3.GetCloudFrontUrls()
 
-	log.Printf("Listed %d objects in S3 bucket", len(result.Contents))
+    var clientItems []common.ClientItem
 
-	// Create a slice to store the image objects
-	var images []Image
+    for _, cloudFrontUrl := range cloudFrontUrls {
+        if cloudFrontUrl.BucketKey.IsVideo() {
+            clientItem := &common.ClientItem { 
+                CloudFrontUrl: cloudFrontUrl.GetUrl(),
+                FileName: cloudFrontUrl.BucketKey.GetFileNameWithoutExtension(),
+            }    
 
-	//  imageURL := fmt.Sprintf("https://%s.s3.amazonaws.com/%s", "goserverbucket", *obj.Key)
-	// Iterate over the objects and create the image objects
-	for _, object := range result.Contents {
-        file := &File { Key: *object.Key }
-
-        if file.IsVideo() {
-            imageURL := fmt.Sprintf("https://d271tjczb1hjof.cloudfront.net/%s", *object.Key)
-            
-            image := Image{
-                URL: imageURL,
-                Alt: *object.Key, // Use the object key as the alt text
-            }
-            images = append(images, image)
+            clientItems = append(clientItems, *clientItem)
         }
-	}
-	log.Printf("Created %d video objects", len(images))
+    }
 
 	// Set the response content type to JSON
 	w.Header().Set("Content-Type", "application/json")
 	// w.Header().Set("Cache-Control", "public, max-age=3600") // Cache for 1 hour
 
 	// Encode the image objects as JSON and write the response
-	err = json.NewEncoder(w).Encode(images)
+	err = json.NewEncoder(w).Encode(clientItems)
 	if err != nil {
-		log.Printf("Failed to encode video objects as JSON: %v", err)
+		log.Printf("Failed to encode image objects as JSON: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
