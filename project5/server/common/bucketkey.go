@@ -12,15 +12,58 @@ type BucketKey struct {
 	Key string // File Key including the extension ex. "hello.png" "accounts/spencer/temp.png"
 }
 
+func (f *BucketKey) GetKeyForTranscription() string {
+    transcriptionKey := f.GetBucketKeyUpToEndOfGuid() + "-transcription-output.json"
+
+    return transcriptionKey
+}
+
+func (f *BucketKey) GetKeyForCaptions() string {
+    captionKey := f.GetBucketKeyUpToEndOfGuid() + "-captions.vtt"
+
+    return captionKey
+}
+
+func (f *BucketKey) GetTranscriptionJobName() string {
+    jobName := "TranscriptionJobName-" + f.GetGuid().String()
+
+    return jobName
+}
+
 func (f *BucketKey) GetGuid() uuid.UUID {
-	fileName := f.GetFileNameWithoutExtension()
+    // Find the index of the last occurrence of "/"
+    lastSlashIndex := strings.LastIndex(f.Key, "/") // users/spencer/<uuidString>-<filename>.<filetype> 
 
-	uuidString := fileName[:36]
+    if lastSlashIndex != -1 {
+        // Extract the substring from the start to the last "/"
+        substring := f.Key[lastSlashIndex+1:36]
+     
+        parsedUUID, _ := uuid.Parse(substring)
 
-	// Parse the UUID string
-	parsedUUID, _ := uuid.Parse(uuidString)
+        return parsedUUID 
+    } else {
+        substring := f.Key[:36]
 
-	return parsedUUID
+        parsedUUID, _ := uuid.Parse(substring)
+
+        return parsedUUID 
+    } 
+}
+
+func (f *BucketKey) GetBucketKeyUpToEndOfGuid() string {
+    // Find the index of the last occurrence of "/"
+    lastSlashIndex := strings.LastIndex(f.Key, "/") // users/spencer/<uuidString>-<filename>.<filetype> 
+
+    if lastSlashIndex != -1 {
+        // Extract the substring from the start to the last "/"
+        substring := f.Key[:(lastSlashIndex+1) + 36]
+      
+        return substring
+    } else {
+        substring := f.Key[:36]
+
+        return substring
+    } 
 }
 
 func (f *BucketKey) GetFileNameWithoutExtension() string {

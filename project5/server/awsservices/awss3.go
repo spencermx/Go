@@ -1,6 +1,9 @@
 package awsservices
 
 import (
+    "fmt"
+    "bytes"
+    "encoding/json"
 	"io"
 	"log"
 	"mime/multipart"
@@ -14,8 +17,6 @@ import (
 	"errors"
 	"goserver/common"
 	"strings"
-	//	"github.com/gorilla/handlers"
-	// "html/template"
 )
 
 // GLOBAL VARIABLES
@@ -40,6 +41,18 @@ func NewAwsS3(awsSession *session.Session, s3Client *s3.S3, s3manager *s3manager
 		BucketName: bucketName,
 		Region:     region,
 	}
+}
+
+func (s *AwsS3) ContainsKey(key string) bool {
+    keys, _ := s.GetKeys()
+
+    for _, item := range keys {
+        if item.Key == key {
+            return true
+        }
+    }
+
+    return false
 }
 
 // return strings like "account/spencer/temp.png" "first.png"
@@ -127,11 +140,26 @@ func (s *AwsS3) GetKeysByGuid(uuid uuid.UUID) ([]*common.BucketKey, error) {
     return bucketsKeysForGuid, nil
 }
 
+func (s *AwsS3) UploadFileCaptions(bucketKey common.BucketKey, buffer *bytes.Reader) error {
+    uploader := s3manager.NewUploader(s.AwsSession)
+    uploadInput := &s3manager.UploadInput{
+        Bucket: aws.String(s.BucketName),
+        Key:    aws.String(bucketKey.GetKeyForCaptions()),
+        Body:   buffer,
+    }
+    _, err := uploader.Upload(uploadInput)
 
-func (s *AwsS3) UploadFile(bucketKey string, file multipart.File) error {
+    if err != nil {
+        return err
+    }
+
+    return nil
+}
+
+func (s *AwsS3) UploadFile(bucketKey common.BucketKey, file multipart.File) error {
     _, err := s.S3Manager.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(s.BucketName),
-		Key:    aws.String(bucketKey),
+		Key:    aws.String(bucketKey.Key),
 		Body:   file,
 	})
 
@@ -142,6 +170,41 @@ func (s *AwsS3) UploadFile(bucketKey string, file multipart.File) error {
     return nil
 }
 
+func (s *AwsS3) GetTranscriptionJson(bucketKey common.BucketKey) (*TranscriptionResult, error) {
+    getObjectInput := &s3.GetObjectInput{
+        Bucket: aws.String(s.BucketName),
+        Key:    aws.String(bucketKey.Key),
+    }
+
+    getObjectOutput, err := s.S3Client.GetObject(getObjectInput)
+
+    if err != nil {
+        return nil, err
+    }
+
+    defer getObjectOutput.Body.Close()
+
+    // Read the JSON content into a byte buffer
+    buf := new(bytes.Buffer)
+
+    _, err = buf.ReadFrom(getObjectOutput.Body)
+
+    if err != nil {
+       return nil, err
+    }
+
+    // Parse the JSON content into the TranscriptionResult struct
+    var transcriptionResult TranscriptionResult
+    fmt.Println(buf.String())
+    err = json.Unmarshal(buf.Bytes(), &transcriptionResult)
+
+    if err != nil {
+       return nil, err
+    }
+
+    return &transcriptionResult, nil
+
+}
 
 
 

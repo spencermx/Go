@@ -52,8 +52,9 @@
         <div class="file-grid">
           {#each files as file}
             <div class="file-item">
-                <video controls>
+                <video controls crossorigin="anonymous">
                   <source src={file.url} type="video/mp4">
+                  <track src={file.videocaptionsurl} kind="captions" srclang="en" label="English" default crossorigin="anonymous">
                   Your browser does not support the video tag.
                 </video>
               <div class="file-overlay">

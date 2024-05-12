@@ -12,25 +12,24 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	//"github.com/aws/aws-sdk-go/service/transcribeservice"
+	"github.com/aws/aws-sdk-go/service/transcribeservice"
 	"golang.org/x/time/rate"
 
+	"github.com/google/uuid"
 	"goserver/awsservices"
 	"goserver/common"
-	"github.com/google/uuid"
 	//	"github.com/gorilla/handlers"
-	//
 	// "html/template"
 )
 
 // GLOBAL VARIABLES
-var AWS_REGION string = "us-east-2"
-var MAX_FILE_SIZE int64 = 150 << 20 // 150MB
-
 var (
-	// Create a rate limiter with a maximum of 10 requests per minute
-	limiter = rate.NewLimiter(rate.Every(time.Minute), 2)
+	AWS_REGION    string = "us-east-2"
+	MAX_FILE_SIZE int64  = 150 << 20 // 150MB
 )
+
+// Create a rate limiter with a maximum of 10 requests per minute
+var limiter = rate.NewLimiter(rate.Every(time.Minute), 2)
 
 type Person struct {
 	ID   int    `json:"id"`
@@ -38,12 +37,11 @@ type Person struct {
 	Age  int    `json:"age"`
 }
 
-
 func GetPeople(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodGet {
-        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-        return
-    }
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	// Initialize the in-memory data structure with some sample data
 	people := []Person{
 		{ID: 1, Name: "John Doe", Age: 30},
@@ -59,74 +57,12 @@ func GetPeople(w http.ResponseWriter, r *http.Request) {
 }
 
 func UploadImage(w http.ResponseWriter, r *http.Request) {
-  	log.Printf("/uploadImage")
-    if r.Method != http.MethodPost {
-        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-        return
-    }
-
-	// Check if the request is allowed by the rate limiter
-	if !limiter.Allow() {
-		http.Error(w, "Too many requests", http.StatusTooManyRequests)
+	log.Printf("/uploadImage")
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Parse the multipart form
-	err := r.ParseMultipartForm(MAX_FILE_SIZE) 
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	file, header, err := r.FormFile("file")
-
-    var multipartFile *MultipartFile = &MultipartFile { File: file }
-
-    if !multipartFile.IsImage() {
-        http.Error(w, "The selected file must be an image", http.StatusBadRequest)
-		return
-    }
-
-	defer file.Close()
-
-	// Create a new AWS session
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(AWS_REGION),
-	})
-
-	if err != nil {
-		log.Printf("Failed to create AWS session: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	log.Println("Created AWS session")
-
-    var uploader *s3manager.Uploader = s3manager.NewUploader(sess)
-
-    bucketName := os.Getenv("BUCKET_NAME")
-
-    var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, nil, uploader, bucketName, AWS_REGION)  
-
-    bucketKey := uuid.New().String() + "-" + header.Filename
-
-    err = awsS3.UploadFile(bucketKey, file)
-
-    if err != nil {
-		log.Printf("Failed to upload file: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-    }
-
-	fmt.Fprintf(w, "File uploaded successfully")
-}
-
-func UploadVideo(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodPost {
-        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-        return
-    }
 	// Check if the request is allowed by the rate limiter
 	if !limiter.Allow() {
 		http.Error(w, "Too many requests", http.StatusTooManyRequests)
@@ -135,29 +71,19 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 
 	// Parse the multipart form
 	err := r.ParseMultipartForm(MAX_FILE_SIZE)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// Get the uploaded file
 	file, header, err := r.FormFile("file")
 
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	var multipartFile *MultipartFile = &MultipartFile{File: file}
+
+	if !multipartFile.IsImage() {
+		http.Error(w, "The selected file must be an image", http.StatusBadRequest)
 		return
 	}
-
-    /**************************************************************************************************/
-    // NEW VIDEO VALIDATION
-    var multipartFile *MultipartFile = &MultipartFile { File: file }
-
-    if !multipartFile.IsVideo() {
-        http.Error(w, "The selected file must be a video", http.StatusBadRequest)
-		return
-    }
-    /**************************************************************************************************/
 
 	defer file.Close()
 
@@ -165,7 +91,6 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String(AWS_REGION),
 	})
-
 	if err != nil {
 		log.Printf("Failed to create AWS session: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -174,95 +99,157 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Created AWS session")
 
-    var uploader *s3manager.Uploader = s3manager.NewUploader(sess)
+	var uploader *s3manager.Uploader = s3manager.NewUploader(sess)
 
-    bucketName := os.Getenv("BUCKET_NAME")
+	bucketName := os.Getenv("BUCKET_NAME")
 
-    var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, nil, uploader, bucketName, AWS_REGION)  
+	var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, nil, uploader, bucketName, AWS_REGION)
 
-    //key := fmt.Sprintf("%s-%s", uuid, header.Filename)
-    bucketKey := uuid.New().String() + "-" + header.Filename
+	bucketKey := common.BucketKey{
+		Key: uuid.New().String() + "-" + header.Filename,
+	}
 
-    err = awsS3.UploadFile(bucketKey, file)
-
-    if err != nil {
+	err = awsS3.UploadFile(bucketKey, file)
+	if err != nil {
 		log.Printf("Failed to upload file: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-    }
+	}
 
-    // fmt.Fprintf(w, "File uploaded successfully")
+	fmt.Fprintf(w, "File uploaded successfully")
+}
 
+func CreateCaptionsVtt(w http.ResponseWriter, r *http.Request) {
+	// Parse the query string parameters
+	queryParams := r.URL.Query()
 
-    //var uuid string = "9e1e2dd4-c836-43af-ba21-090b9a1032d3"
+	// Create a new AWS session
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String(AWS_REGION),
+	})
+	if err != nil {
+		log.Printf("Failed to create AWS session: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-    // Create a new Amazon Transcribe client
-    // log.Printf("Creating Amazon Transcription Client")
+	// Get the value of the desired query parameter
+	bucketKey := common.BucketKey{Key: queryParams.Get("bucketkey")}
+	bucketName := os.Getenv("BUCKET_NAME")
 
-    // transcribeClient := transcribeservice.New(sess)
+	s3Client := s3.New(sess)
+	log.Println("Created S3 client")
 
-    // log.Printf("Successfully Created Amazon Transcription Client")
-    // 
-    // var videoS3Uri string = fmt.Sprintf("s3://%s/%s", bucketName, key)
-    // var videoTranscriptOutput string = fmt.Sprintf("%s-transcription-output.json", uuid)
-    // 
-    // transcriptionJobInput := &transcribeservice.StartTranscriptionJobInput{
-    //     Media: &transcribeservice.Media{
-    //         MediaFileUri: aws.String(videoS3Uri),
-    //     },
-    //     OutputBucketName: aws.String(bucketName),
-    //     OutputKey:        aws.String(videoTranscriptOutput),
-    //     TranscriptionJobName:  aws.String("TranscriptionJobName-" + uuid), 
-    //     LanguageCode:     aws.String("en-US"), // Set the language code
-    //     // Set any other necessary options
-    // }
+	var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, s3Client, nil, bucketName, AWS_REGION)
 
-    // _, err = transcribeClient.StartTranscriptionJob(transcriptionJobInput)
+	containsKey := awsS3.ContainsKey(bucketKey.Key)
 
-    // if err != nil {
-	// 	log.Printf("Transcription failure: %v", err)
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 	return
-    // }
+	if containsKey {
+		log.Printf("Creating Amazon Transcription Client")
+		transcribeClient := transcribeservice.New(sess)
+		log.Printf("Successfully Created Amazon Transcription Client")
 
+		var awsTranscribe *awsservices.AwsTranscribe = awsservices.NewAwsTranscribe(awsS3, transcribeClient)
 
-    // Save the transcription job name for later use
+        awsTranscribe.CreateVttFile(bucketKey)
+	}
+}
 
-//    transcriptionjobname := transcriptionjoboutput.transcriptionjob.transcriptionjobname
-//   // wait for the transcription job to complete
-//    for {
-//        jobstatusoutput, err := transcribeclient.gettranscriptionjob(&transcribeservice.gettranscriptionjobinput{
-//            transcriptionjobname: transcriptionjobname,
-//        })
-//        if err != nil {
-//            log.printf("failed to get transcription job status: %v", err)
-//            http.error(w, err.error(), http.statusinternalservererror)
-//            return
-//        }
-//
-//        jobstatus := *jobstatusoutput.transcriptionjob.transcriptionjobstatus
-//
-//        if jobstatus == transcribeservice.transcriptionjobstatuscompleted {
-//            log.printf("transcription job %s completed successfully", *transcriptionjobname)
-//            break
-//        } else if jobstatus == transcribeservice.transcriptionjobstatusfailed {
-//            log.printf("transcription job %s failed with status %s", *transcriptionjobname, jobstatus)
-//            http.error(w, fmt.sprintf("transcription job failed with status %s", jobstatus), http.statusinternalservererror)
-//            return
-//        } else {
-//            log.printf("transcription job %s is in progress with status %s", *transcriptionjobname, jobstatus)
-//            time.sleep(5 * time.second) // wait for a few seconds before checking again
-//        }
-//    }
+func UploadVideo(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	// Check if the request is allowed by the rate limiter
+	if !limiter.Allow() {
+		http.Error(w, "Too many requests", http.StatusTooManyRequests)
+		return
+	}
+
+	// Parse the multipart form
+	err := r.ParseMultipartForm(MAX_FILE_SIZE)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Get the uploaded file
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	/**************************************************************************************************/
+	// NEW VIDEO VALIDATION
+	var multipartFile *MultipartFile = &MultipartFile{File: file}
+
+	if !multipartFile.IsVideo() {
+		http.Error(w, "The selected file must be a video", http.StatusBadRequest)
+		return
+	}
+	/**************************************************************************************************/
+
+	defer file.Close()
+
+	// Create a new AWS session
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String(AWS_REGION),
+	})
+	if err != nil {
+		log.Printf("Failed to create AWS session: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Println("Created AWS session")
+
+	bucketName := os.Getenv("BUCKET_NAME")
+	bucketKey := common.BucketKey{Key: uuid.New().String() + "-" + header.Filename}
+
+	var uploader *s3manager.Uploader = s3manager.NewUploader(sess)
+	var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, nil, uploader, bucketName, AWS_REGION)
+
+	err = awsS3.UploadFile(bucketKey, file)
+	if err != nil {
+		log.Printf("Failed to upload file: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// fmt.Fprintf(w, "File uploaded successfully")
+
+	//log.Printf("Creating Amazon Transcription Client")
+	//transcribeClient := transcribeservice.New(sess)
+	//log.Printf("Successfully Created Amazon Transcription Client")
+
+	//var awsTranscribe *awsservices.AwsTranscribe = awsservices.NewAwsTranscribe(awsS3, transcribeClient)
+
+	//awsTranscriptionJob, err := awsTranscribe.StartTranscriptionJob(bucketKey)
+	//if err != nil {
+	//	log.Printf("Error in transcription process: %v", err)
+	//	http.Error(w, err.Error(), http.StatusInternalServerError)
+	//	return
+	//}
+
+	//err = awsTranscriptionJob.WaitForCompletion()
+	//if err != nil {
+	//	log.Printf("Error in transcription process: %v", err)
+	//	http.Error(w, err.Error(), http.StatusInternalServerError)
+	//	return
+	//}
+
+	//// Create VTT file from json
+	//awsTranscribe.CreateVttFile(bucketKey)
 }
 
 func GetImages(w http.ResponseWriter, r *http.Request) {
 	log.Println("Handling request for /getImages")
 
-    if r.Method != http.MethodGet {
-        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-        return
-    }
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
 	// Create a new AWS session
 	sess, err := session.NewSession(&aws.Config{
@@ -280,24 +267,24 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 	s3Client := s3.New(sess)
 	log.Println("Created S3 client")
 
-    var bucketName string = os.Getenv("BUCKET_NAME")
-    
-    var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, s3Client, nil, bucketName, AWS_REGION)  
+	var bucketName string = os.Getenv("BUCKET_NAME")
 
-    cloudFrontUrls, err := awsS3.GetCloudFrontUrls()
+	var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, s3Client, nil, bucketName, AWS_REGION)
 
-    var clientItems []common.ClientItem
+	cloudFrontUrls, err := awsS3.GetCloudFrontUrls()
 
-    for _, cloudFrontUrl := range cloudFrontUrls {
-        if cloudFrontUrl.BucketKey.IsImage() {
-            clientItem := &common.ClientItem { 
-                CloudFrontUrl: cloudFrontUrl.GetUrl(),
-                FileName: cloudFrontUrl.BucketKey.GetFileNameWithoutExtension(),
-            }    
+	var clientItems []common.ClientItem
 
-            clientItems = append(clientItems, *clientItem)
-        }
-    }
+	for _, cloudFrontUrl := range cloudFrontUrls {
+		if cloudFrontUrl.BucketKey.IsImage() {
+			clientItem := &common.ClientItem{
+				CloudFrontUrl: cloudFrontUrl.GetUrl(),
+				FileName:      cloudFrontUrl.BucketKey.GetFileNameWithoutExtension(),
+			}
+
+			clientItems = append(clientItems, *clientItem)
+		}
+	}
 
 	// Set the response content type to JSON
 	w.Header().Set("Content-Type", "application/json")
@@ -315,10 +302,10 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 func GetVideos(w http.ResponseWriter, r *http.Request) {
 	log.Println("Handling request for /getVideos")
 
-    if r.Method != http.MethodGet {
-        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-        return
-    }
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
 	// Create a new AWS session
 	sess, err := session.NewSession(&aws.Config{
@@ -336,24 +323,25 @@ func GetVideos(w http.ResponseWriter, r *http.Request) {
 	s3Client := s3.New(sess)
 	log.Println("Created S3 client")
 
-    var bucketName string = os.Getenv("BUCKET_NAME")
-    
-    var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, s3Client, nil, bucketName, AWS_REGION)  
+	var bucketName string = os.Getenv("BUCKET_NAME")
 
-    cloudFrontUrls, err := awsS3.GetCloudFrontUrls()
+	var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, s3Client, nil, bucketName, AWS_REGION)
 
-    var clientItems []common.ClientItem
+	cloudFrontUrls, err := awsS3.GetCloudFrontUrls()
 
-    for _, cloudFrontUrl := range cloudFrontUrls {
-        if cloudFrontUrl.BucketKey.IsVideo() {
-            clientItem := &common.ClientItem { 
-                CloudFrontUrl: cloudFrontUrl.GetUrl(),
-                FileName: cloudFrontUrl.BucketKey.GetFileNameWithoutExtensionAndGuid(),
-            }    
+	var clientItems []common.ClientItem
 
-            clientItems = append(clientItems, *clientItem)
-        }
-    }
+	for _, cloudFrontUrl := range cloudFrontUrls {
+		if cloudFrontUrl.BucketKey.IsVideo() {
+			clientItem := &common.ClientItem{
+				CloudFrontUrl: cloudFrontUrl.GetUrl(),
+				FileName:      cloudFrontUrl.BucketKey.GetFileNameWithoutExtensionAndGuid(),
+                VideoCaptionsUrl: cloudFrontUrl.GetUrlCaptionsVtt(),
+			}
+
+			clientItems = append(clientItems, *clientItem)
+		}
+	}
 
 	// Set the response content type to JSON
 	w.Header().Set("Content-Type", "application/json")

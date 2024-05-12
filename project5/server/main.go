@@ -37,6 +37,8 @@ func main() {
 
     http.HandleFunc("/getVideos", handlers.GetVideos)
 
+    http.HandleFunc("/createCaptionsVtt", handlers.CreateCaptionsVtt)
+
 //    http.Handle("/getImages", handlers.CORS(
 //        handlers.AllowedOrigins([]string{"http://localhost:5173"}),
 //        handlers.AllowedMethods([]string{"GET"}),
