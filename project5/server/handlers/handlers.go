@@ -12,12 +12,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/aws/aws-sdk-go/service/transcribeservice"
+	//"github.com/aws/aws-sdk-go/service/transcribeservice"
 	"golang.org/x/time/rate"
 
 	"goserver/awsservices"
 	"goserver/common"
-	//"github.com/google/uuid"
+	"github.com/google/uuid"
 	//	"github.com/gorilla/handlers"
 	//
 	// "html/template"
@@ -189,57 +189,58 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 	log.Println("Created AWS session")
 
 	// Create an S3 uploader
-	//uploader := s3manager.NewUploader(sess)
+	uploader := s3manager.NewUploader(sess)
 
     var bucketName string = os.Getenv("BUCKET_NAME")
     
-    //uuid, _ := uuid.NewRandom()
+    uuid, _ := uuid.NewRandom()
 
-    var uuid string = "9e1e2dd4-c836-43af-ba21-090b9a1032d3"
+    //var uuid string = "9e1e2dd4-c836-43af-ba21-090b9a1032d3"
     key := fmt.Sprintf("%s-%s", uuid, header.Filename)
 
 	// Upload the file to S3
-	// _, err = uploader.Upload(&s3manager.UploadInput{
-	// 	Bucket: aws.String(bucketName),
-	// 	Key:    aws.String(key),
-	// 	Body:   file,
-	// })
+	_, err = uploader.Upload(&s3manager.UploadInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(key),
+		Body:   file,
+	})
 
-	// if err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
-
-    // Create a new Amazon Transcribe client
-    log.Printf("Creating Amazon Transcription Client")
-
-    transcribeClient := transcribeservice.New(sess)
-
-    log.Printf("Successfully Created Amazon Transcription Client")
-    
-    var videoS3Uri string = fmt.Sprintf("s3://%s/%s", bucketName, key)
-    var videoTranscriptOutput string = fmt.Sprintf("%s-transcription-output.json", uuid)
-    
-    transcriptionJobInput := &transcribeservice.StartTranscriptionJobInput{
-        Media: &transcribeservice.Media{
-            MediaFileUri: aws.String(videoS3Uri),
-        },
-        OutputBucketName: aws.String(bucketName),
-        OutputKey:        aws.String(videoTranscriptOutput),
-        TranscriptionJobName:  aws.String("TranscriptionJobName-" + uuid), 
-        LanguageCode:     aws.String("en-US"), // Set the language code
-        // Set any other necessary options
-    }
-
-    _, err = transcribeClient.StartTranscriptionJob(transcriptionJobInput)
-
-    if err != nil {
-		log.Printf("Transcription failure: %v", err)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-    }
+	}
 
 	fmt.Fprintf(w, "File uploaded successfully")
+
+    // Create a new Amazon Transcribe client
+    // log.Printf("Creating Amazon Transcription Client")
+
+    // transcribeClient := transcribeservice.New(sess)
+
+    // log.Printf("Successfully Created Amazon Transcription Client")
+    // 
+    // var videoS3Uri string = fmt.Sprintf("s3://%s/%s", bucketName, key)
+    // var videoTranscriptOutput string = fmt.Sprintf("%s-transcription-output.json", uuid)
+    // 
+    // transcriptionJobInput := &transcribeservice.StartTranscriptionJobInput{
+    //     Media: &transcribeservice.Media{
+    //         MediaFileUri: aws.String(videoS3Uri),
+    //     },
+    //     OutputBucketName: aws.String(bucketName),
+    //     OutputKey:        aws.String(videoTranscriptOutput),
+    //     TranscriptionJobName:  aws.String("TranscriptionJobName-" + uuid), 
+    //     LanguageCode:     aws.String("en-US"), // Set the language code
+    //     // Set any other necessary options
+    // }
+
+    // _, err = transcribeClient.StartTranscriptionJob(transcriptionJobInput)
+
+    // if err != nil {
+	// 	log.Printf("Transcription failure: %v", err)
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	return
+    // }
+
 
     // Save the transcription job name for later use
 
