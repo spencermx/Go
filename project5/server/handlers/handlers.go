@@ -28,8 +28,10 @@ var (
 	MAX_FILE_SIZE int64  = 150 << 20 // 150MB
 )
 
-// Create a rate limiter with a maximum of 10 requests per minute
-var limiter = rate.NewLimiter(rate.Every(time.Minute), 2)
+// Create a rate uploadLimiter with a maximum of 10 requests per minute
+//var uploadLimiter = rate.NewLimiter(rate.Every(time.Minute), 2)
+var uploadLimiter = rate.NewLimiter(rate.Every(time.Hour/10), 10)
+var downloadLimiter = rate.NewLimiter(rate.Every(time.Hour/10), 150)
 
 type Person struct {
 	ID   int    `json:"id"`
@@ -42,6 +44,13 @@ func GetPeople(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	// Check if the request is allowed by the rate uploadLimiter
+	if !downloadLimiter.Allow() {
+		http.Error(w, "Too many requests", http.StatusTooManyRequests)
+		return
+	}
+
 	// Initialize the in-memory data structure with some sample data
 	people := []Person{
 		{ID: 1, Name: "John Doe", Age: 30},
@@ -63,8 +72,8 @@ func UploadImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if the request is allowed by the rate limiter
-	if !limiter.Allow() {
+	// Check if the request is allowed by the rate uploadLimiter
+	if !uploadLimiter.Allow() {
 		http.Error(w, "Too many requests", http.StatusTooManyRequests)
 		return
 	}
@@ -120,6 +129,12 @@ func UploadImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateCaptionsVtt(w http.ResponseWriter, r *http.Request) {
+	// Check if the request is allowed by the rate uploadLimiter
+	if !downloadLimiter.Allow() {
+		http.Error(w, "Too many requests", http.StatusTooManyRequests)
+		return
+	}
+
 	// Parse the query string parameters
 	queryParams := r.URL.Query()
 
@@ -160,8 +175,8 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	// Check if the request is allowed by the rate limiter
-	if !limiter.Allow() {
+	// Check if the request is allowed by the rate uploadLimiter
+	if !uploadLimiter.Allow() {
 		http.Error(w, "Too many requests", http.StatusTooManyRequests)
 		return
 	}
@@ -251,6 +266,12 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if the request is allowed by the rate uploadLimiter
+	if !downloadLimiter.Allow() {
+		http.Error(w, "Too many requests", http.StatusTooManyRequests)
+		return
+	}
+
 	// Create a new AWS session
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String(AWS_REGION),
@@ -304,6 +325,12 @@ func GetVideos(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Check if the request is allowed by the rate uploadLimiter
+	if !downloadLimiter.Allow() {
+		http.Error(w, "Too many requests", http.StatusTooManyRequests)
 		return
 	}
 
