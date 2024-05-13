@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -125,7 +124,8 @@ func UploadImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "File uploaded successfully")
+    // Redirect to the "/home" route after the upload is complete
+    http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func CreateCaptionsVtt(w http.ResponseWriter, r *http.Request) {
@@ -231,6 +231,9 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+    // Redirect to the "/home" route after the upload is complete
+    http.Redirect(w, r, "/home", http.StatusSeeOther)
 
 	// fmt.Fprintf(w, "File uploaded successfully")
 
