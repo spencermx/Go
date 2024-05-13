@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
 
   let files = [];
+  let filteredFiles = [];
   let selectedFile = null;
   let searchQuery = '';
 
@@ -18,11 +19,12 @@
     }
   });
 
-  $: filteredFiles = files.filter(file => {
-    const fileName = file.url.toLowerCase();
-    const altText = file.alt ? file.alt.toLowerCase() : '';
-    return fileName.includes(searchQuery.toLowerCase()) || altText.includes(searchQuery.toLowerCase());
-  });
+  $: {
+    filteredFiles = files.filter(file => {
+      const altText = file.alt ? file.alt.toLowerCase() : '';
+      return altText.includes(searchQuery.toLowerCase());
+    });
+  }
 </script>
 
 <body>
@@ -44,11 +46,13 @@
       <section class="gallery">
         <h2>Gallery</h2>
         <div class="file-grid">
-          {#each filteredFiles as file}
-            <div class="file-item">
+          {#each filteredFiles as file (file.url)}
+            <div class="file-item" key={file.url}>
               <video controls crossorigin="anonymous">
                 <source src={file.url} type="video/mp4">
-                <track src={file.videocaptionsurl} kind="captions" srclang="en" label="English" default crossorigin="anonymous">
+                {#if file.videocaptionsurl}
+                  <track src={file.videocaptionsurl} kind="captions" srclang="en" label="English" default crossorigin="anonymous">
+                {/if}
                 Your browser does not support the video tag.
               </video>
               {#if file.alt}
