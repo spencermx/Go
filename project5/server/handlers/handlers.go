@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+    "encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -25,6 +25,7 @@ import (
 var (
 	AWS_REGION    string = "us-east-2"
 	MAX_FILE_SIZE int64  = 150 << 20 // 150MB
+    MAX_AUDIO_DURATION time.Duration = 55 * time.Minute
 )
 
 // Create a rate uploadLimiter with a maximum of 10 requests per minute
@@ -175,6 +176,7 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
 	// Check if the request is allowed by the rate uploadLimiter
 	if !uploadLimiter.Allow() {
 		http.Error(w, "Too many requests", http.StatusTooManyRequests)
@@ -196,7 +198,7 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	/**************************************************************************************************/
-	// NEW VIDEO VALIDATION
+    // Validate the uploaded file is actually a video
 	var multipartFile *MultipartFile = &MultipartFile{File: file}
 
 	if !multipartFile.IsVideo() {
@@ -205,12 +207,25 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 	}
 	/**************************************************************************************************/
 
+
+	/**************************************************************************************************/
+    // Validate the length of the audio in the uploaded video is less than the MAX_AUDIO_DURATION 
+    duration, err := multipartFile.GetAudioDuration()
+
+    log.Println("selected video audio duration: " + duration.String())
+    if duration > MAX_AUDIO_DURATION {
+        http.Error(w, "Video duration exceeds the maximum allowed limit", http.StatusBadRequest)
+        return
+    }
+	/**************************************************************************************************/
+
 	defer file.Close()
 
 	// Create a new AWS session
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String(AWS_REGION),
 	})
+
 	if err != nil {
 		log.Printf("Failed to create AWS session: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -232,8 +247,6 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-    // Redirect to the "/home" route after the upload is complete
-    http.Redirect(w, r, "/home", http.StatusSeeOther)
 
 	// fmt.Fprintf(w, "File uploaded successfully")
 
@@ -259,6 +272,9 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 
 	//// Create VTT file from json
 	//awsTranscribe.CreateVttFile(bucketKey)
+
+    // Redirect to the "/home" route after the upload is complete
+    http.Redirect(w, r, "/home", http.StatusSeeOther)
 }
 
 func GetImages(w http.ResponseWriter, r *http.Request) {
