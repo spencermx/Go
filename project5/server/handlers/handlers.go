@@ -207,7 +207,6 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 	}
 	/**************************************************************************************************/
 
-
 	/**************************************************************************************************/
     // Validate the length of the audio in the uploaded video is less than the MAX_AUDIO_DURATION 
     duration, err := multipartFile.GetAudioDuration()
@@ -247,7 +246,8 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
+	/************************* Enable video transcription with AWS Transcribe *************************/
+    // Enable video transcription with AWS Transcribe
 	// fmt.Fprintf(w, "File uploaded successfully")
 
 	//log.Printf("Creating Amazon Transcription Client")
@@ -270,10 +270,10 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 	//	return
 	//}
 
-	//// Create VTT file from json
+	// Create VTT file from json
 	//awsTranscribe.CreateVttFile(bucketKey)
+    /**************************************************************************************************/
 
-    // Redirect to the "/home" route after the upload is complete
     http.Redirect(w, r, "/home", http.StatusSeeOther)
 }
 
