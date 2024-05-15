@@ -25,12 +25,12 @@ import (
 var (
 	AWS_REGION    string = "us-east-2"
 	MAX_FILE_SIZE int64  = 150 << 20 // 150MB
-    MAX_AUDIO_DURATION time.Duration = 55 * time.Minute
+    MAX_AUDIO_DURATION time.Duration = 60 * time.Minute
 )
 
 // Create a rate uploadLimiter with a maximum of 10 requests per minute
 //var uploadLimiter = rate.NewLimiter(rate.Every(time.Minute), 2)
-var uploadLimiter = rate.NewLimiter(rate.Every(time.Hour/10), 10)
+var uploadLimiter = rate.NewLimiter(rate.Every(time.Hour/10), 7)
 var downloadLimiter = rate.NewLimiter(rate.Every(time.Hour/10), 150)
 
 type Person struct {
@@ -213,7 +213,7 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 
     log.Println("selected video audio duration: " + duration.String())
     if duration > MAX_AUDIO_DURATION {
-        http.Error(w, "Video duration exceeds the maximum allowed limit", http.StatusBadRequest)
+        http.Error(w, "Video is too large for transcription. Maximum size is 1 hour", http.StatusBadRequest)
         return
     }
 	/**************************************************************************************************/
