@@ -1,4 +1,4 @@
-package awsservices
+package awsclients
 
 import (
 	"errors"
@@ -9,19 +9,19 @@ import (
 	"goserver/common"
 )
 
-type AwsTranscribe struct {
-	AwsS3            *AwsS3
+type AwsClientTranscribe struct {
+	AwsS3            *AwsClientS3
 	TranscribeClient *transcribeservice.TranscribeService
 }
 
-func NewAwsTranscribe(awsS3 *AwsS3, transcribeClient *transcribeservice.TranscribeService) *AwsTranscribe {
-	awsTranscribe := &AwsTranscribe{AwsS3: awsS3, TranscribeClient: transcribeClient}
+func NewAwsClientTranscribe(awsS3 *AwsClientS3, transcribeClient *transcribeservice.TranscribeService) *AwsClientTranscribe {
+	awsClientTranscribe := &AwsClientTranscribe{AwsS3: awsS3, TranscribeClient: transcribeClient}
 
-	return awsTranscribe
+	return awsClientTranscribe
 }
 
 // *transcribeservice.StartTranscriptionJobOutput
-func (t *AwsTranscribe) StartTranscriptionJob(bucketKey common.BucketKey) (*AwsTranscriptionJob, error) {
+func (t *AwsClientTranscribe) StartTranscriptionJob(bucketKey common.BucketKey) (*AwsTranscriptionJob, error) {
 	var videoS3Uri string = fmt.Sprintf("s3://%s/%s", t.AwsS3.BucketName, bucketKey.Key)
 	var videoTranscriptOutput string = bucketKey.GetKeyForTranscription()
 	var transcriptionJobName string = bucketKey.GetTranscriptionJobName()
@@ -52,7 +52,7 @@ func (t *AwsTranscribe) StartTranscriptionJob(bucketKey common.BucketKey) (*AwsT
 	return awsTranscriptionJob, nil
 }
 
-func (t *AwsTranscribe) CreateVttFile(bucketKey common.BucketKey) error {
+func (t *AwsClientTranscribe) CreateVttFile(bucketKey common.BucketKey) error {
     transcriptionResult, err := t.AwsS3.GetTranscriptionJson(bucketKey)
 
 	if err != nil {
@@ -65,3 +65,4 @@ func (t *AwsTranscribe) CreateVttFile(bucketKey common.BucketKey) error {
 
     return nil
 }
+

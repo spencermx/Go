@@ -1,4 +1,4 @@
-package awsservices
+package awsclients
 
 import (
     "strings"
@@ -6,10 +6,10 @@ import (
     "fmt"
     "strconv"
 )
-
 type TranscriptionResult struct {
     JobName   string `json:"jobName"`
     AccountID string `json:"accountId"`
+    Status    string `json:"status"`
     Results   struct {
         Transcripts []struct {
             Transcript string `json:"transcript"`
@@ -17,14 +17,32 @@ type TranscriptionResult struct {
         Items []struct {
             Type         string `json:"type"`
             Alternatives []struct {
-                Content string  `json:"content"`
-                Confidence string `json:"confidence"`
+                Content    string  `json:"content"`
+                Confidence float64 `json:"confidence,string"`
             } `json:"alternatives"`
             StartTime string `json:"start_time"`
             EndTime   string `json:"end_time"`
         } `json:"items"`
     } `json:"results"`
 }
+//type TranscriptionResult struct {
+//    JobName   string `json:"jobName"`
+//    AccountID string `json:"accountId"`
+//    Results   struct {
+//        Transcripts []struct {
+//            Transcript string `json:"transcript"`
+//        } `json:"transcripts"`
+//        Items []struct {
+//            Type         string `json:"type"`
+//            Alternatives []struct {
+//                Content string  `json:"content"`
+//                Confidence string `json:"confidence"`
+//            } `json:"alternatives"`
+//            StartTime string `json:"start_time"`
+//            EndTime   string `json:"end_time"`
+//        } `json:"items"`
+//    } `json:"results"`
+//}
 
 const maxTimeDiff = 3.0 // Maximum time difference in seconds between consecutive words to group them together
 
@@ -37,7 +55,7 @@ func (r TranscriptionResult) CreateCaptionsVtt() *bytes.Reader {
     var originalStartTime string
     var originalStartTimeValue float64
     var endTimeOfLastCaptionAdded string
-    var captionIndex int = 1
+    var vttIndex int = 1 // An index number thats written to the vtt file
     
     for i, item := range r.Results.Items {
         currentStartTime := formatTime(item.StartTime)
@@ -46,29 +64,40 @@ func (r TranscriptionResult) CreateCaptionsVtt() *bytes.Reader {
         currentEndTimeValue, _ := strconv.ParseFloat(item.EndTime, 64)
         currentWord := item.Alternatives[0].Content
 
+        // Handle First Item
         if (i == 0) {
-            // first iteration set original
             originalStartTime = currentStartTime
             originalStartTimeValue = currentStartTimeValue
         }
 
+        // Handle Last Item
+        if (i == len(r.Results.Items)-1) {
+            currentCaptionWords = append(currentCaptionWords, currentWord)
+
+            var endTime string  
+
+            if item.Type == "punctuation" {
+                endTime = endTimeOfLastCaptionAdded
+            } else {
+                endTime = currentEndTime
+            }
+            
+            captionEntry := fmt.Sprintf("%d\n%s --> %s\n%s\n\n", vttIndex, originalStartTime, endTime, joinWordsWithPunctuation(currentCaptionWords))
+            buffer.WriteString(captionEntry)
+            continue
+        }
+
+        // Handle Punctuation. Special Case: Punctuation elements have no start_time or end_time
         if (item.Type == "punctuation") {
             currentCaptionWords = append(currentCaptionWords, currentWord)
             continue
         }
-        
-        if (i == len(r.Results.Items)-1) {
-            // last iteration
-            currentCaptionWords = append(currentCaptionWords, currentWord)
-            captionEntry := fmt.Sprintf("%d\n%s --> %s\n%s\n\n", captionIndex, originalStartTime, currentEndTime, joinWordsWithPunctuation(currentCaptionWords))
-            buffer.WriteString(captionEntry)
-        }
 
         if (currentEndTimeValue - originalStartTimeValue > maxTimeDiff) {
             // write the current caption then start a new originalStartTimeValue
-            captionEntry := fmt.Sprintf("%d\n%s --> %s\n%s\n\n", captionIndex, originalStartTime, endTimeOfLastCaptionAdded, joinWordsWithPunctuation(currentCaptionWords))
+            captionEntry := fmt.Sprintf("%d\n%s --> %s\n%s\n\n", vttIndex, originalStartTime, endTimeOfLastCaptionAdded, joinWordsWithPunctuation(currentCaptionWords))
             buffer.WriteString(captionEntry)
-            captionIndex += 1
+            vttIndex += 1
 
             // start a new caption
             currentCaptionWords = []string{currentWord}

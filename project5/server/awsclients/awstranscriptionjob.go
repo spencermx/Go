@@ -1,4 +1,4 @@
-package awsservices
+package awsclients
 
 import (
 	"errors"
@@ -17,8 +17,8 @@ type AwsTranscriptionJob struct {
 	TranscribeClient            *transcribeservice.TranscribeService
 }
 
-func NewAwsTranscriptionJob(awsS3 *AwsS3, transcribeClient *transcribeservice.TranscribeService) *AwsTranscribe {
-	awsTranscribe := &AwsTranscribe{AwsS3: awsS3, TranscribeClient: transcribeClient}
+func NewAwsTranscriptionJob(awsS3 *AwsClientS3, transcribeClient *transcribeservice.TranscribeService) *AwsClientTranscribe {
+	awsTranscribe := &AwsClientTranscribe{AwsS3: awsS3, TranscribeClient: transcribeClient}
 
 	return awsTranscribe
 }

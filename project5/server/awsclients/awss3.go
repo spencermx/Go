@@ -1,4 +1,4 @@
-package awsservices
+package awsclients
 
 import (
     "fmt"
@@ -25,25 +25,43 @@ var (
 	MAX_FILE_SIZE int64  = 150 << 20 // 150MB
 )
 
-type AwsS3 struct {
+type AwsClientS3 struct {
 	AwsSession *session.Session
 	S3Client   *s3.S3
-    S3Manager  *s3manager.Uploader
+    S3Uploader  *s3manager.Uploader
 	BucketName string
 	Region     string
 }
 
-func NewAwsS3(awsSession *session.Session, s3Client *s3.S3, s3manager *s3manager.Uploader, bucketName string, region string) *AwsS3 {
-	return &AwsS3{
+func NewAwsClientS3(awsBucketName string, awsRegion string) (*AwsClientS3, error) {
+	// Create a new AWS session
+	awsSession, err := session.NewSession(&aws.Config{
+		Region: aws.String(awsRegion),
+	})
+	if err != nil {
+		log.Printf("Failed to create AWS session: %v", err)
+        return nil, err
+	}
+
+	log.Println("Created AWS session")
+
+	var uploader *s3manager.Uploader = s3manager.NewUploader(awsSession)
+
+	// Create an S3 client
+	s3Client := s3.New(awsSession)
+
+    awsClientS3 := &AwsClientS3{
 		AwsSession: awsSession,
         S3Client: s3Client,
-        S3Manager: s3manager,
-		BucketName: bucketName,
-		Region:     region,
+        S3Uploader: uploader,
+		BucketName: awsBucketName,
+		Region:     awsRegion,
 	}
+
+    return awsClientS3, nil
 }
 
-func (s *AwsS3) ContainsKey(key string) bool {
+func (s *AwsClientS3) ContainsKey(key string) bool {
     keys, _ := s.GetKeys()
 
     for _, item := range keys {
@@ -56,7 +74,7 @@ func (s *AwsS3) ContainsKey(key string) bool {
 }
 
 // return strings like "account/spencer/temp.png" "first.png"
-func (s *AwsS3) GetKeys() ([]*common.BucketKey, error) {
+func (s *AwsClientS3) GetKeys() ([]*common.BucketKey, error) {
 	// List objects in the S3 bucket
 	result, err := s.S3Client.ListObjectsV2(&s3.ListObjectsV2Input{
 		Bucket: aws.String(s.BucketName),
@@ -76,7 +94,7 @@ func (s *AwsS3) GetKeys() ([]*common.BucketKey, error) {
 	return keys, nil
 }
 
-func (s *AwsS3) GetFileByKey(bucketKey *common.BucketKey) ([]byte, error) {
+func (s *AwsClientS3) GetFileByKey(bucketKey *common.BucketKey) ([]byte, error) {
 	// Get the object from the S3 bucket
 	result, err := s.S3Client.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(s.BucketName),
@@ -100,7 +118,7 @@ func (s *AwsS3) GetFileByKey(bucketKey *common.BucketKey) ([]byte, error) {
 	return fileBytes, nil
 }
 
-func (s *AwsS3) GetCloudFrontUrls() ([]*common.FileUrl, error) {
+func (s *AwsClientS3) GetCloudFrontUrls() ([]*common.FileUrl, error) {
     bucketKeys, err := s.GetKeys()
 
     if err != nil {
@@ -118,7 +136,7 @@ func (s *AwsS3) GetCloudFrontUrls() ([]*common.FileUrl, error) {
     return cloudFrontUrls, nil
 }
 
-func (s *AwsS3) GetKeysByGuid(uuid uuid.UUID) ([]*common.BucketKey, error) {
+func (s *AwsClientS3) GetKeysByGuid(uuid uuid.UUID) ([]*common.BucketKey, error) {
     bucketKeys, err := s.GetKeys()
 
     if err != nil {
@@ -140,7 +158,7 @@ func (s *AwsS3) GetKeysByGuid(uuid uuid.UUID) ([]*common.BucketKey, error) {
     return bucketsKeysForGuid, nil
 }
 
-func (s *AwsS3) UploadFileCaptions(bucketKey common.BucketKey, buffer *bytes.Reader) error {
+func (s *AwsClientS3) UploadFileCaptions(bucketKey common.BucketKey, buffer *bytes.Reader) error {
     uploader := s3manager.NewUploader(s.AwsSession)
     uploadInput := &s3manager.UploadInput{
         Bucket: aws.String(s.BucketName),
@@ -156,8 +174,8 @@ func (s *AwsS3) UploadFileCaptions(bucketKey common.BucketKey, buffer *bytes.Rea
     return nil
 }
 
-func (s *AwsS3) UploadFile(bucketKey common.BucketKey, file multipart.File) error {
-    _, err := s.S3Manager.Upload(&s3manager.UploadInput{
+func (s *AwsClientS3) UploadFile(bucketKey common.BucketKey, file multipart.File) error {
+    _, err := s.S3Uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(s.BucketName),
 		Key:    aws.String(bucketKey.Key),
 		Body:   file,
@@ -170,12 +188,11 @@ func (s *AwsS3) UploadFile(bucketKey common.BucketKey, file multipart.File) erro
     return nil
 }
 
-func (s *AwsS3) GetTranscriptionJson(bucketKey common.BucketKey) (*TranscriptionResult, error) {
+func (s *AwsClientS3) GetTranscriptionJson(bucketKey common.BucketKey) (*TranscriptionResult, error) {
     getObjectInput := &s3.GetObjectInput{
         Bucket: aws.String(s.BucketName),
-        Key:    aws.String(bucketKey.Key),
+        Key:    aws.String(bucketKey.GetKeyForTranscription()),
     }
-
     getObjectOutput, err := s.S3Client.GetObject(getObjectInput)
 
     if err != nil {

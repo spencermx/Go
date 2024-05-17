@@ -9,15 +9,13 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/aws/aws-sdk-go/service/transcribeservice"
 	"golang.org/x/time/rate"
 
 	"github.com/google/uuid"
-	"goserver/awsservices"
+	"goserver/awsclients"
 	"goserver/common"
-	//	"github.com/gorilla/handlers"
+	// "github.com/gorilla/handlers"
 	// "html/template"
 )
 
@@ -96,23 +94,14 @@ func UploadImage(w http.ResponseWriter, r *http.Request) {
 
 	defer file.Close()
 
-	// Create a new AWS session
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(AWS_REGION),
-	})
+	bucketName := os.Getenv("BUCKET_NAME")
+
+    awsS3, err := awsclients.NewAwsClientS3(bucketName, AWS_REGION)
 	if err != nil {
-		log.Printf("Failed to create AWS session: %v", err)
+		log.Printf("Failed to upload file: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	log.Println("Created AWS session")
-
-	var uploader *s3manager.Uploader = s3manager.NewUploader(sess)
-
-	bucketName := os.Getenv("BUCKET_NAME")
-
-	var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, nil, uploader, bucketName, AWS_REGION)
 
 	bucketKey := common.BucketKey{
 		Key: uuid.New().String() + "-" + header.Filename,
@@ -153,10 +142,12 @@ func CreateCaptionsVtt(w http.ResponseWriter, r *http.Request) {
 	bucketKey := common.BucketKey{Key: queryParams.Get("bucketkey")}
 	bucketName := os.Getenv("BUCKET_NAME")
 
-	s3Client := s3.New(sess)
-	log.Println("Created S3 client")
-
-	var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, s3Client, nil, bucketName, AWS_REGION)
+    awsS3, err := awsclients.NewAwsClientS3(bucketName, AWS_REGION)
+	if err != nil {
+		log.Printf("Failed to upload file: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	containsKey := awsS3.ContainsKey(bucketKey.Key)
 
@@ -165,13 +156,15 @@ func CreateCaptionsVtt(w http.ResponseWriter, r *http.Request) {
 		transcribeClient := transcribeservice.New(sess)
 		log.Printf("Successfully Created Amazon Transcription Client")
 
-		var awsTranscribe *awsservices.AwsTranscribe = awsservices.NewAwsTranscribe(awsS3, transcribeClient)
+		var awsTranscribe *awsclients.AwsClientTranscribe = awsclients.NewAwsClientTranscribe(awsS3, transcribeClient)
 
         awsTranscribe.CreateVttFile(bucketKey)
 	}
 }
 
 func UploadVideo(w http.ResponseWriter, r *http.Request) {
+    log.Println("/UploadVideo")
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -220,11 +213,6 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 
 	defer file.Close()
 
-	// Create a new AWS session
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(AWS_REGION),
-	})
-
 	if err != nil {
 		log.Printf("Failed to create AWS session: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -236,10 +224,14 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 	bucketName := os.Getenv("BUCKET_NAME")
 	bucketKey := common.BucketKey{Key: uuid.New().String() + "-" + header.Filename}
 
-	var uploader *s3manager.Uploader = s3manager.NewUploader(sess)
-	var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, nil, uploader, bucketName, AWS_REGION)
+    awsClientS3, err := awsclients.NewAwsClientS3(bucketName, AWS_REGION)
+	if err != nil {
+		log.Printf("Failed to upload file: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-	err = awsS3.UploadFile(bucketKey, file)
+	err = awsClientS3.UploadFile(bucketKey, file)
 	if err != nil {
 		log.Printf("Failed to upload file: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -250,28 +242,28 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
     // Enable video transcription with AWS Transcribe
 	// fmt.Fprintf(w, "File uploaded successfully")
 
-	//log.Printf("Creating Amazon Transcription Client")
-	//transcribeClient := transcribeservice.New(sess)
-	//log.Printf("Successfully Created Amazon Transcription Client")
+	log.Printf("Creating Amazon Transcription Client")
+	transcribeService := transcribeservice.New(awsClientS3.AwsSession)
+	log.Printf("Successfully Created Amazon Transcription Client")
 
-	//var awsTranscribe *awsservices.AwsTranscribe = awsservices.NewAwsTranscribe(awsS3, transcribeClient)
+	var awsClientTranscribe *awsclients.AwsClientTranscribe = awsclients.NewAwsClientTranscribe(awsClientS3, transcribeService)
 
-	//awsTranscriptionJob, err := awsTranscribe.StartTranscriptionJob(bucketKey)
-	//if err != nil {
-	//	log.Printf("Error in transcription process: %v", err)
-	//	http.Error(w, err.Error(), http.StatusInternalServerError)
-	//	return
-	//}
+	awsResultTranscriptionJob, err := awsClientTranscribe.StartTranscriptionJob(bucketKey)
+	if err != nil {
+		log.Printf("Error in transcription process: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-	//err = awsTranscriptionJob.WaitForCompletion()
-	//if err != nil {
-	//	log.Printf("Error in transcription process: %v", err)
-	//	http.Error(w, err.Error(), http.StatusInternalServerError)
-	//	return
-	//}
+	err = awsResultTranscriptionJob.WaitForCompletion()
+	if err != nil {
+		log.Printf("Error in transcription process: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	// Create VTT file from json
-	//awsTranscribe.CreateVttFile(bucketKey)
+	awsClientTranscribe.CreateVttFile(bucketKey)
     /**************************************************************************************************/
 
     http.Redirect(w, r, "/home", http.StatusSeeOther)
@@ -291,25 +283,14 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create a new AWS session
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(AWS_REGION),
-	})
+	var bucketName string = os.Getenv("BUCKET_NAME")
+
+    awsS3, err := awsclients.NewAwsClientS3(bucketName, AWS_REGION)
 	if err != nil {
-		log.Printf("Failed to create AWS session: %v", err)
+		log.Printf("Failed to upload file: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	log.Println("Created AWS session")
-
-	// Create an S3 client
-	s3Client := s3.New(sess)
-	log.Println("Created S3 client")
-
-	var bucketName string = os.Getenv("BUCKET_NAME")
-
-	var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, s3Client, nil, bucketName, AWS_REGION)
 
 	cloudFrontUrls, err := awsS3.GetCloudFrontUrls()
 
@@ -353,25 +334,14 @@ func GetVideos(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create a new AWS session
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(AWS_REGION),
-	})
+	var bucketName string = os.Getenv("BUCKET_NAME")
+
+    awsS3, err := awsclients.NewAwsClientS3(bucketName, AWS_REGION)
 	if err != nil {
-		log.Printf("Failed to create AWS session: %v", err)
+		log.Printf("Failed to upload file: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	log.Println("Created AWS session")
-
-	// Create an S3 client
-	s3Client := s3.New(sess)
-	log.Println("Created S3 client")
-
-	var bucketName string = os.Getenv("BUCKET_NAME")
-
-	var awsS3 *awsservices.AwsS3 = awsservices.NewAwsS3(sess, s3Client, nil, bucketName, AWS_REGION)
 
 	cloudFrontUrls, err := awsS3.GetCloudFrontUrls()
 
