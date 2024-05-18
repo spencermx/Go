@@ -1,6 +1,7 @@
 package handlers
 
 import (
+    "fmt"
     "encoding/json"
 	"log"
 	"net/http"
@@ -189,6 +190,7 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	defer file.Close()
 
 	/**************************************************************************************************/
     // Validate the uploaded file is actually a video
@@ -211,15 +213,9 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
     }
 	/**************************************************************************************************/
 
-	defer file.Close()
+    thumbnailBytes, err := multipartFile.GenerateThumbnail()
 
-	if err != nil {
-		log.Printf("Failed to create AWS session: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	log.Println("Created AWS session")
+    saveThumbnailToFile(thumbnailBytes, "/home/spencer/mythumbnails/2024-05-18fromserver.jpg")
 
 	bucketName := os.Getenv("BUCKET_NAME")
 	bucketKey := common.BucketKey{Key: uuid.New().String() + "-" + header.Filename}
@@ -242,31 +238,48 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
     // Enable video transcription with AWS Transcribe
 	// fmt.Fprintf(w, "File uploaded successfully")
 
-	log.Printf("Creating Amazon Transcription Client")
-	transcribeService := transcribeservice.New(awsClientS3.AwsSession)
-	log.Printf("Successfully Created Amazon Transcription Client")
+	//log.Printf("Creating Amazon Transcription Client")
+	//transcribeService := transcribeservice.New(awsClientS3.AwsSession)
+	//log.Printf("Successfully Created Amazon Transcription Client")
 
-	var awsClientTranscribe *awsclients.AwsClientTranscribe = awsclients.NewAwsClientTranscribe(awsClientS3, transcribeService)
+	//var awsClientTranscribe *awsclients.AwsClientTranscribe = awsclients.NewAwsClientTranscribe(awsClientS3, transcribeService)
 
-	awsResultTranscriptionJob, err := awsClientTranscribe.StartTranscriptionJob(bucketKey)
-	if err != nil {
-		log.Printf("Error in transcription process: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	//awsResultTranscriptionJob, err := awsClientTranscribe.StartTranscriptionJob(bucketKey)
+	//if err != nil {
+	//	log.Printf("Error in transcription process: %v", err)
+	//	http.Error(w, err.Error(), http.StatusInternalServerError)
+	//	return
+	//}
 
-	err = awsResultTranscriptionJob.WaitForCompletion()
-	if err != nil {
-		log.Printf("Error in transcription process: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	//err = awsResultTranscriptionJob.WaitForCompletion()
+	//if err != nil {
+	//	log.Printf("Error in transcription process: %v", err)
+	//	http.Error(w, err.Error(), http.StatusInternalServerError)
+	//	return
+	//}
 
-	// Create VTT file from json
-	awsClientTranscribe.CreateVttFile(bucketKey)
+	//// Create VTT file from json
+	//awsClientTranscribe.CreateVttFile(bucketKey)
     /**************************************************************************************************/
 
     http.Redirect(w, r, "/home", http.StatusSeeOther)
+}
+
+func saveThumbnailToFile(thumbnailBytes []byte, filename string) error {
+    // Create the thumbnail file
+    thumbnailFile, err := os.Create(filename)
+    if err != nil {
+        return fmt.Errorf("failed to create thumbnail file: %v", err)
+    }
+    defer thumbnailFile.Close()
+
+    // Write the thumbnail bytes to the file
+    _, err = thumbnailFile.Write(thumbnailBytes)
+    if err != nil {
+        return fmt.Errorf("failed to write thumbnail to file: %v", err)
+    }
+
+    return nil
 }
 
 func GetImages(w http.ResponseWriter, r *http.Request) {
