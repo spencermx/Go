@@ -66,21 +66,7 @@ func (f *FileUrl) GetUrlThumbnail() string {
 }
 
 func (f *FileUrl) GetUrlTranscriptionOutputJson() string {
-    uuidString := f.BucketKey.GetGuid().String()
+    cloudFrontTranscriptionsUrl := f.RootUrl + f.BucketKey.GetKeyForTranscription() 
 
-    // Find the index of the last occurrence of "/"
-    lastSlashIndex := strings.LastIndex(f.BucketKey.Key, "/") // users/spencer/<uuidString>-<filename>.<filetype> 
-
-    if lastSlashIndex != -1 {
-        // Extract the substring from the start to the last "/"
-        substring := f.BucketKey.Key[:lastSlashIndex+1]
-       
-        cloudFrontTranscriptionUrl := f.RootUrl + substring + uuidString + "-transcription-output.json"
-
-        return cloudFrontTranscriptionUrl
-    } else {
-        cloudFrontTranscriptionUrl := f.RootUrl + uuidString + "-transcription-output.json"
-
-        return cloudFrontTranscriptionUrl
-    } 
+    return cloudFrontTranscriptionsUrl
 }
