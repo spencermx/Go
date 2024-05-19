@@ -54,23 +54,15 @@ func (f *FileUrl) GetUrl() string {
 }
 
 func (f *FileUrl) GetUrlCaptionsVtt() string {
-    uuidString := f.BucketKey.GetGuid().String()
+    cloudFrontCaptionsUrl := f.RootUrl + f.BucketKey.GetKeyForCaptions() // substring + uuidString + "-captions.vtt"
 
-    // Find the index of the last occurrence of "/"
-    lastSlashIndex := strings.LastIndex(f.BucketKey.Key, "/") // users/spencer/<uuidString>-<filename>.<filetype> 
+    return cloudFrontCaptionsUrl
+}
 
-    if lastSlashIndex != -1 {
-        // Extract the substring from the start to the last "/"
-        substring := f.BucketKey.Key[:lastSlashIndex+1]
-       
-        cloudFrontCaptionsUrl := f.RootUrl + substring + uuidString + "-captions.vtt"
+func (f *FileUrl) GetUrlThumbnail() string {
+    cloudFrontThumbnailUrl := f.RootUrl + f.BucketKey.GetKeyForThumbnail() 
 
-        return cloudFrontCaptionsUrl
-    } else {
-        cloudFrontCaptionsUrl := f.RootUrl + uuidString + "-captions.vtt" 
-
-        return cloudFrontCaptionsUrl
-    } 
+    return cloudFrontThumbnailUrl
 }
 
 func (f *FileUrl) GetUrlTranscriptionOutputJson() string {

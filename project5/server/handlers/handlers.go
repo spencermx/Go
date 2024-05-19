@@ -376,6 +376,7 @@ func GetVideos(w http.ResponseWriter, r *http.Request) {
 				CloudFrontUrl: cloudFrontUrl.GetUrl(),
 				FileName:      cloudFrontUrl.BucketKey.GetFileNameWithoutExtensionAndGuid(),
                 VideoCaptionsUrl: cloudFrontUrl.GetUrlCaptionsVtt(),
+                VideoThumbnailUrl: cloudFrontUrl.GetUrlThumbnail(),
 			}
 
 			clientItems = append(clientItems, *clientItem)
