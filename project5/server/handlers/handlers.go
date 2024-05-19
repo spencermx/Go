@@ -180,14 +180,14 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 	// Parse the multipart form
 	err := r.ParseMultipartForm(MAX_FILE_SIZE)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "File Too Large", http.StatusBadRequest)
 		return
 	}
 
 	// Get the uploaded file
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Malformed Request", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
@@ -213,24 +213,34 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
     }
 	/**************************************************************************************************/
 
-    thumbnailBytes, err := multipartFile.GenerateThumbnail()
-
-    saveThumbnailToFile(thumbnailBytes, "/home/spencer/mythumbnails/2024-05-18fromserver.jpg")
-
 	bucketName := os.Getenv("BUCKET_NAME")
 	bucketKey := common.BucketKey{Key: uuid.New().String() + "-" + header.Filename}
 
     awsClientS3, err := awsclients.NewAwsClientS3(bucketName, AWS_REGION)
 	if err != nil {
 		log.Printf("Failed to upload file: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+    thumbnailBytes, err := multipartFile.GenerateThumbnail()
+	if err != nil {
+		log.Printf("Failed to generate thumbnail: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+    err = awsClientS3.UploadVideoThumbnail(bucketKey, thumbnailBytes)
+	if err != nil {
+        log.Printf("Failed to upload thumbnail: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	err = awsClientS3.UploadFile(bucketKey, file)
 	if err != nil {
 		log.Printf("Failed to upload file: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 

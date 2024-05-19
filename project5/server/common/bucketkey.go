@@ -12,6 +12,12 @@ type BucketKey struct {
 	Key string // File Key including the extension ex. "hello.png" "accounts/spencer/temp.png"
 }
 
+func (f *BucketKey) GetKeyForThumbnail() string {
+    thumbnailKey := f.GetBucketKeyUpToEndOfGuid() + "-thumbnail.jpg"
+
+    return thumbnailKey
+}
+
 func (f *BucketKey) GetKeyForTranscription() string {
     transcriptionKey := f.GetBucketKeyUpToEndOfGuid() + "-transcription-output.json"
 

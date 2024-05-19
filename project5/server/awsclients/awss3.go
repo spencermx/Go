@@ -174,6 +174,24 @@ func (s *AwsClientS3) UploadFileCaptions(bucketKey common.BucketKey, buffer *byt
     return nil
 }
 
+func (s *AwsClientS3) UploadVideoThumbnail(bucketKey common.BucketKey, imageData []byte) error {
+    uploader := s3manager.NewUploader(s.AwsSession)
+
+    uploadInput := &s3manager.UploadInput{
+        Bucket:      aws.String(s.BucketName),
+        Key:         aws.String(bucketKey.GetKeyForThumbnail()),
+        Body:        bytes.NewReader(imageData),
+        ContentType: aws.String("image/jpeg"),
+    }
+
+    _, err := uploader.Upload(uploadInput)
+    if err != nil {
+        return err
+    }
+
+    return nil
+}
+
 func (s *AwsClientS3) UploadFile(bucketKey common.BucketKey, file multipart.File) error {
     _, err := s.S3Uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(s.BucketName),

@@ -34,7 +34,12 @@ func (m *MultipartFile) IsVideo() bool {
 }
 
 func (m *MultipartFile) GenerateThumbnail() ([]byte, error) {
+	var thumbnailBytes bytes.Buffer
+
     videoDuration, err := m.GetVideoDuration()
+    if err != nil {
+        return thumbnailBytes.Bytes(), err
+    }
 
 	middleDuration := videoDuration / 2
 
@@ -55,7 +60,6 @@ func (m *MultipartFile) GenerateThumbnail() ([]byte, error) {
 
 	// Set the command's stdin and stdout
 	cmd.Stdin = &fileBytes
-	var thumbnailBytes bytes.Buffer
 	cmd.Stdout = &thumbnailBytes
 
 	// Run the FFmpeg command
@@ -187,16 +191,39 @@ func (m *MultipartFile) detectContentType() (string, error) {
 }
 
 func (m *MultipartFile) getBytesFromFile() (bytes.Buffer, error) {
-	// Read the file into memory
-    var fileBytes bytes.Buffer
+    // Save the current position of the file
+    currentPosition, err := m.File.Seek(0, io.SeekCurrent)
+    if err != nil {
+        return bytes.Buffer{}, err
+    }
 
-	_, err := io.Copy(&fileBytes, m.File)
-	if err != nil {
-		return fileBytes, err 
-	}
+    // Read the file into memory
+    var fileBytes bytes.Buffer
+    _, err = io.Copy(&fileBytes, m.File)
+    if err != nil {
+        return bytes.Buffer{}, err
+    }
+
+    // Reset the file cursor position to the beginning
+    _, err = m.File.Seek(currentPosition, io.SeekStart)
+    if err != nil {
+        return bytes.Buffer{}, err
+    }
 
     return fileBytes, nil
 }
+
+//func (m *MultipartFile) getBytesFromFile() (bytes.Buffer, error) {
+//	// Read the file into memory
+//    var fileBytes bytes.Buffer
+//
+//	_, err := io.Copy(&fileBytes, m.File)
+//	if err != nil {
+//		return fileBytes, err 
+//	}
+//
+//    return fileBytes, nil
+//}
 
 //    // Check the file content type
 //    var fileHeader []byte = make([]byte, 512)
