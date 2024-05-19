@@ -272,7 +272,7 @@ func UploadVideo(w http.ResponseWriter, r *http.Request) {
 	//awsClientTranscribe.CreateVttFile(bucketKey)
     /**************************************************************************************************/
 
-    http.Redirect(w, r, "/home", http.StatusSeeOther)
+    http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func saveThumbnailToFile(thumbnailBytes []byte, filename string) error {

@@ -52,7 +52,7 @@ func (m *MultipartFile) GenerateThumbnail() ([]byte, error) {
 		"-i", "pipe:0",              // Read input from stdin
 		"-ss", timeStamp,            // "00:00:01" Set the thumbnail timestamp (adjust as needed)
 		"-vframes", "1",             // Extract a single frame
-		// "-vf", "scale=320:240",      // Set the thumbnail dimensions (adjust as needed)
+		"-vf", "scale=600:400",      // Set the thumbnail dimensions (adjust as needed)
 		"-f", "image2pipe",          // Output to stdout as an image
 		"-c:v", "mjpeg",             // Use MJPEG codec for the thumbnail
 		"pipe:1",                    // Write output to stdout

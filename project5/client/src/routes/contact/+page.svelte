@@ -93,7 +93,7 @@
             </div>
             <div class="details">
               <h3>Email</h3>
-              <p>yourname@example.com</p>
+              <p>maas.spencer@outlook.com</p>
             </div>
           </div>
         </div>
