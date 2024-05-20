@@ -97,6 +97,7 @@ func (f *BucketKey) GetFileNameWithoutExtensionAndGuid() string {
     fileName := f.Key[slashIndex+38:]
 	return removeExtension(fileName)
 }
+
 // GetFileExtension returns the file extension of the file
 func (f *BucketKey) GetFileExtension() string {
 	return strings.ToLower(filepath.Ext(f.Key))

@@ -322,8 +322,8 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 	for _, cloudFrontUrl := range cloudFrontUrls {
 		if cloudFrontUrl.BucketKey.IsImage() {
 			clientItem := &common.ClientItem{
-				CloudFrontUrl: cloudFrontUrl.GetUrl(),
-				FileName:      cloudFrontUrl.BucketKey.GetFileNameWithoutExtension(),
+				VideoUrl: cloudFrontUrl.GetUrl(),
+				VideoName:      cloudFrontUrl.BucketKey.GetFileNameWithoutExtension(),
 			}
 
 			clientItems = append(clientItems, *clientItem)
@@ -373,8 +373,9 @@ func GetVideos(w http.ResponseWriter, r *http.Request) {
 	for _, cloudFrontUrl := range cloudFrontUrls {
 		if cloudFrontUrl.BucketKey.IsVideo() {
 			clientItem := &common.ClientItem{
-				CloudFrontUrl: cloudFrontUrl.GetUrl(),
-				FileName:      cloudFrontUrl.BucketKey.GetFileNameWithoutExtensionAndGuid(),
+                VideoId: cloudFrontUrl.BucketKey.GetGuid().String(),
+				VideoName:      cloudFrontUrl.BucketKey.GetFileNameWithoutExtensionAndGuid(),
+				VideoUrl: cloudFrontUrl.GetUrl(),
                 VideoCaptionsUrl: cloudFrontUrl.GetUrlCaptionsVtt(),
                 VideoThumbnailUrl: cloudFrontUrl.GetUrlThumbnail(),
 			}
