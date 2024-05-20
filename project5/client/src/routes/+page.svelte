@@ -20,6 +20,7 @@
    startTime: number;
    endTime: number;
    text: string;
+   timeRange: string;
   }
 
   interface SearchResultItem {
@@ -41,23 +42,7 @@
   let vttData: VTTData[] = [];
   let searchResults: SearchResultItem[] = [];
   /******** TEXT SEARCH VIDEOS ***********/
-
   let videos: Video[] = [];
-
-  onMount(async () => {
-    videos = JSON.parse(json);
-    // videos = await fetchVideos();
-    await loadVTTFiles();
-
-    buildSearchIndex();
-
-    $: {
-      filteredVideos = videos.filter(video => {
-        const videoNameText = video.videoName ? video.videoName.toLowerCase() : '';
-        return videoNameText.includes(searchQuery.toLowerCase());
-      });
-    }
-  })
 
   function buildSearchIndex() {
     searchIndex = lunr(function (this: any) {
@@ -166,7 +151,11 @@
       if (line.includes('-->')) {
         const [startTime, endTime] = line.split('-->').map(parseTimestamp);
         const text = lines[++i].trim();
-        cues.push({ startTime, endTime, text });
+        cues.push({
+          startTime: startTime, 
+          endTime: endTime, 
+          text: text,
+          timeRange: line});
       }
     }
   
@@ -182,48 +171,104 @@
     );
   }
 
+  function createAnchorTagForCard(video) {
+    const videoUrl = encodeURIComponent(video.videoUrl);
+    const videoName = encodeURIComponent(video.videoName);
+    const videoCaptionsUrl = encodeURIComponent(video.videoCaptionsUrl);
+
+    let nameTag = ``
+    let result = `<a class="card-link" href="/video?url=${videoUrl}&videoName=${videoName}&captions=${videoCaptionsUrl}">
+                <div class="card">
+                  <div class="card-img-container">
+                    <img src=${video.videoThumbnailUrl} videoName=${video.videoName} class="card-img" />`
+
+    if (video.videoName) {
+
+        result += `<div class="card-body">
+                      <h6 class="card-title">${video.videoName}</h6>
+                   </div>`;
+
+    }
+
+    result += `</div></div></a>`;
+
+    return result;
+  }
+  
+  function createAnchorTagForTimeStamp(result) {
+    const videoUrl = encodeURIComponent(result.video.videoUrl);
+    const videoName = encodeURIComponent(result.video.videoName);
+    const videoCaptionsUrl = encodeURIComponent(result.video.videoCaptionsUrl);
+    const timestamp = result.vttCue.timeRange.split('-->')[0].trim();
+    const displayText = result.vttCue.text.slice(0, 100) 
+    return `<a href="/video?url=${videoUrl}&videoName=${videoName}&captions=${videoCaptionsUrl}&starttime=${result.vttCue.startTime}">${displayText}</a>`;
+  }
+  onMount(async () => {
+    videos = JSON.parse(json);
+    // videos = await fetchVideos();
+    await loadVTTFiles();
+
+    buildSearchIndex();
+
+  })
+
+  $: {
+    filteredVideos = videos.filter(video => {
+      const videoNameText = video.videoName ? video.videoName.toLowerCase() : '';
+      return videoNameText.includes(searchQuery.toLowerCase());
+    });
+  }
+
+
 </script>
 
 <body>
   <div class="container">
     <main>
       <section class="search my-4">
-        <input type="text" class="form-control" placeholder="Search videos..." bind:value={searchQuery} />
+        <input type="text" class="form-control" placeholder="Search videos by title..." bind:value={searchQuery} />
       </section>
+
       <section class="search my-4">
-        <input type="text" class="form-control" placeholder="Search videos..." bind:value={textSearchQuery} on:input={performSearch} />
+        <input type="text" class="form-control" placeholder="Search videos by text content..." bind:value={textSearchQuery} on:input={performSearch} />
       </section>
 
       <section class="search-results my-4">
+        <div class="search-results-container">
         {#if searchResults.length > 0}
-            <ul>
-                {#each searchResults as result}
+          <ul>
+            {#each searchResults as result, i}
+              {#if i === 0 || result.video.videoId !== searchResults[i - 1].video.videoId}
+                <li>
+                  <strong>{result.video.videoName}</strong>
+                  <ul>
                     <li>
-                    <strong>{result.video.videoName}</strong> - Matched: {result.vttCue.text}
+                      {result.vttCue.timeRange.split('-->')[0].trim()} {@html createAnchorTagForTimeStamp(result)}
                     </li>
-                {/each}
-            </ul>
+                  </ul>
+                </li>
+              {:else}
+                <li>
+                  <ul>
+                    <li>
+                      {result.vttCue.timeRange.split('-->')[0].trim()} {@html createAnchorTagForTimeStamp(result)}
+                    </li>
+                  </ul>
+                </li>
+              {/if}
+            {/each}
+          </ul>
         {:else if searchQuery}
-            <p>No videos found.</p>
+          <p>No videos found.</p>
         {/if}
+        </div>
       </section>
 
       <section class="gallery">
         <div class="row row-cols-2 row-cols-md-4 g-4">
           {#each filteredVideos as file (file.videoUrl)}
             <div class="col">
-              <a href="/video?url={encodeURIComponent(file.videoUrl)}&videoName={encodeURIComponent(file.videoName)}&captions={encodeURIComponent(file.videoCaptionsUrl)}" class="card-link">
-                <div class="card">
-                  <div class="card-img-container">
-                    <img src={file.videoThumbnailUrl} videoName={file.videoName} class="card-img" />
-                  </div>
-                  {#if file.videoName}
-                    <div class="card-body">
-                      <h6 class="card-title">{file.videoName}</h6>
-                    </div>
-                  {/if}
-                </div>
-              </a>
+              {@html createAnchorTagForCard(file)}
             </div>
           {:else}
             <p>No videos found.</p>
@@ -325,5 +370,43 @@
     .video-preview-container {
       max-width: 200px;
     }
+  }
+
+  .search-results {
+    margin-top: 1rem;
+  }
+
+  .search-results ul {
+    list-style-type: none;
+    padding: 0;
+  }
+
+  .search-results li {
+  }
+
+  .video-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+  }
+
+  .match-item {
+    background-color: #f5f5f5;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+  }
+
+  .match-text {
+    margin-bottom: 0.25rem;
+  }
+
+  .match-timestamp {
+    font-size: 0.9rem;
+    color: #666;
+  }
+ .search-results-container {
+    max-height: 300px;
+    overflow-y: auto;
   }
 </style>
