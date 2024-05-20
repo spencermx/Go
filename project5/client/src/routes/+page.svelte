@@ -30,7 +30,7 @@
   /*************** STRUCTURES **************/
 
   /******** TITLE SEARCH VIDEOS ***********/
-  let json = `[ { "videoId": "56dca040-60d2-4582-8184-30235584dd73", "videoName": "Richard Feynman-The Character of Physical Law Part6: Probability and Uncertainty", "videoUrl": "https://d271tjczb1hjof.cloudfront.net/56dca040-60d2-4582-8184-30235584dd73-Richard Feynman-The Character of Physical Law Part6: Probability and Uncertainty.mp4", "videoCaptionsUrl": "https://d271tjczb1hjof.cloudfront.net/56dca040-60d2-4582-8184-30235584dd73-captions.vtt", "videoThumbnailUrl": "https://d271tjczb1hjof.cloudfront.net/56dca040-60d2-4582-8184-30235584dd73-thumbnail.jpg" }, { "videoId": "9a77d400-3ebc-4543-9868-084cb9c46ef6", "videoName": "Richard Feynman-The Character of Physical Law Part2: The Relation of Mathematics to Physics", "videoUrl": "https://d271tjczb1hjof.cloudfront.net/9a77d400-3ebc-4543-9868-084cb9c46ef6-Richard Feynman-The Character of Physical Law Part2: The Relation of Mathematics to Physics.mp4", "videoCaptionsUrl": "https://d271tjczb1hjof.cloudfront.net/9a77d400-3ebc-4543-9868-084cb9c46ef6-captions.vtt", "videoThumbnailUrl": "https://d271tjczb1hjof.cloudfront.net/9a77d400-3ebc-4543-9868-084cb9c46ef6-thumbnail.jpg" }, { "videoId": "9e1e2dd4-c836-43af-ba21-090b9a1032d3", "videoName": "Richard Feynman Messenger Lectures at Cornell   The Character of Physical Law   Part 1 The Law of Gravitation", "videoUrl": "https://d271tjczb1hjof.cloudfront.net/9e1e2dd4-c836-43af-ba21-090b9a1032d3-Richard Feynman Messenger Lectures at Cornell   The Character of Physical Law   Part 1 The Law of Gravitation.mp4", "videoCaptionsUrl": "https://d271tjczb1hjof.cloudfront.net/9e1e2dd4-c836-43af-ba21-090b9a1032d3-captions.vtt", "videoThumbnailUrl": "https://d271tjczb1hjof.cloudfront.net/9e1e2dd4-c836-43af-ba21-090b9a1032d3-thumbnail.jpg" }, { "videoId": "d5ef5f9a-8c76-4a72-858c-d2f0c9c70da5", "videoName": "Clip Richard Feynman: Mathematicians versus Physicists", "videoUrl": "https://d271tjczb1hjof.cloudfront.net/d5ef5f9a-8c76-4a72-858c-d2f0c9c70da5-Clip Richard Feynman: Mathematicians versus Physicists.mp4", "videoCaptionsUrl": "https://d271tjczb1hjof.cloudfront.net/d5ef5f9a-8c76-4a72-858c-d2f0c9c70da5-captions.vtt", "videoThumbnailUrl": "https://d271tjczb1hjof.cloudfront.net/d5ef5f9a-8c76-4a72-858c-d2f0c9c70da5-thumbnail.jpg" } ]`
+//  let json = `[ { "videoId": "56dca040-60d2-4582-8184-30235584dd73", "videoName": "Richard Feynman-The Character of Physical Law Part6: Probability and Uncertainty", "videoUrl": "https://d271tjczb1hjof.cloudfront.net/56dca040-60d2-4582-8184-30235584dd73-Richard Feynman-The Character of Physical Law Part6: Probability and Uncertainty.mp4", "videoCaptionsUrl": "https://d271tjczb1hjof.cloudfront.net/56dca040-60d2-4582-8184-30235584dd73-captions.vtt", "videoThumbnailUrl": "https://d271tjczb1hjof.cloudfront.net/56dca040-60d2-4582-8184-30235584dd73-thumbnail.jpg" }, { "videoId": "9a77d400-3ebc-4543-9868-084cb9c46ef6", "videoName": "Richard Feynman-The Character of Physical Law Part2: The Relation of Mathematics to Physics", "videoUrl": "https://d271tjczb1hjof.cloudfront.net/9a77d400-3ebc-4543-9868-084cb9c46ef6-Richard Feynman-The Character of Physical Law Part2: The Relation of Mathematics to Physics.mp4", "videoCaptionsUrl": "https://d271tjczb1hjof.cloudfront.net/9a77d400-3ebc-4543-9868-084cb9c46ef6-captions.vtt", "videoThumbnailUrl": "https://d271tjczb1hjof.cloudfront.net/9a77d400-3ebc-4543-9868-084cb9c46ef6-thumbnail.jpg" }, { "videoId": "9e1e2dd4-c836-43af-ba21-090b9a1032d3", "videoName": "Richard Feynman Messenger Lectures at Cornell   The Character of Physical Law   Part 1 The Law of Gravitation", "videoUrl": "https://d271tjczb1hjof.cloudfront.net/9e1e2dd4-c836-43af-ba21-090b9a1032d3-Richard Feynman Messenger Lectures at Cornell   The Character of Physical Law   Part 1 The Law of Gravitation.mp4", "videoCaptionsUrl": "https://d271tjczb1hjof.cloudfront.net/9e1e2dd4-c836-43af-ba21-090b9a1032d3-captions.vtt", "videoThumbnailUrl": "https://d271tjczb1hjof.cloudfront.net/9e1e2dd4-c836-43af-ba21-090b9a1032d3-thumbnail.jpg" }, { "videoId": "d5ef5f9a-8c76-4a72-858c-d2f0c9c70da5", "videoName": "Clip Richard Feynman: Mathematicians versus Physicists", "videoUrl": "https://d271tjczb1hjof.cloudfront.net/d5ef5f9a-8c76-4a72-858c-d2f0c9c70da5-Clip Richard Feynman: Mathematicians versus Physicists.mp4", "videoCaptionsUrl": "https://d271tjczb1hjof.cloudfront.net/d5ef5f9a-8c76-4a72-858c-d2f0c9c70da5-captions.vtt", "videoThumbnailUrl": "https://d271tjczb1hjof.cloudfront.net/d5ef5f9a-8c76-4a72-858c-d2f0c9c70da5-thumbnail.jpg" } ]`
   let filteredVideos = [];
   let selectedFile = null;
   let searchQuery = '';
@@ -203,9 +203,25 @@
     const displayText = result.vttCue.text.slice(0, 100) 
     return `<a href="/video?url=${videoUrl}&videoName=${videoName}&captions=${videoCaptionsUrl}&starttime=${result.vttCue.startTime}">${displayText}</a>`;
   }
+
+  async function fetchVideos(): Promise<Video[]> {
+    try {
+      const response = await fetch('/getVideos');
+      if (response.ok) {
+        return await response.json();
+      } else {
+        console.error('Error fetching videos:', response.status);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching videos:', error);
+      return [];
+    }
+  }
   onMount(async () => {
-    videos = JSON.parse(json);
-    // videos = await fetchVideos();
+    // videos = JSON.parse(json);
+    videos = await fetchVideos();
+
     await loadVTTFiles();
 
     buildSearchIndex();
