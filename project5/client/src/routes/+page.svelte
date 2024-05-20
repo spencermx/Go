@@ -2,210 +2,186 @@
   import { onMount } from 'svelte';
   import lunr from 'lunr';
 
-  /******** TITLE SEARCH VIDEOS ***********/
-  let files =[
-  	{
-  		"videoId": "56dca040-60d2-4582-8184-30235584dd73",
-  		"videoName": "Richard Feynman-The Character of Physical Law Part6: Probability and Uncertainty",
-  		"videoUrl": "https://d271tjczb1hjof.cloudfront.net/56dca040-60d2-4582-8184-30235584dd73-Richard Feynman-The Character of Physical Law Part6: Probability and Uncertainty.mp4",
-  		"videoCaptionsUrl": "https://d271tjczb1hjof.cloudfront.net/56dca040-60d2-4582-8184-30235584dd73-captions.vtt",
-  		"videoThumbnailUrl": "https://d271tjczb1hjof.cloudfront.net/56dca040-60d2-4582-8184-30235584dd73-thumbnail.jpg"
-  	},
-  	{
-  		"videoId": "9a77d400-3ebc-4543-9868-084cb9c46ef6",
-  		"videoName": "Richard Feynman-The Character of Physical Law Part2: The Relation of Mathematics to Physics",
-  		"videoUrl": "https://d271tjczb1hjof.cloudfront.net/9a77d400-3ebc-4543-9868-084cb9c46ef6-Richard Feynman-The Character of Physical Law Part2: The Relation of Mathematics to Physics.mp4",
-  		"videoCaptionsUrl": "https://d271tjczb1hjof.cloudfront.net/9a77d400-3ebc-4543-9868-084cb9c46ef6-captions.vtt",
-  		"videoThumbnailUrl": "https://d271tjczb1hjof.cloudfront.net/9a77d400-3ebc-4543-9868-084cb9c46ef6-thumbnail.jpg"
-  	},
-  	{
-  		"videoId": "9e1e2dd4-c836-43af-ba21-090b9a1032d3",
-  		"videoName": "Richard Feynman Messenger Lectures at Cornell   The Character of Physical Law   Part 1 The Law of Gravitation",
-  		"videoUrl": "https://d271tjczb1hjof.cloudfront.net/9e1e2dd4-c836-43af-ba21-090b9a1032d3-Richard Feynman Messenger Lectures at Cornell   The Character of Physical Law   Part 1 The Law of Gravitation.mp4",
-  		"videoCaptionsUrl": "https://d271tjczb1hjof.cloudfront.net/9e1e2dd4-c836-43af-ba21-090b9a1032d3-captions.vtt",
-  		"videoThumbnailUrl": "https://d271tjczb1hjof.cloudfront.net/9e1e2dd4-c836-43af-ba21-090b9a1032d3-thumbnail.jpg"
-  	},
-  	{
-  		"videoId": "d5ef5f9a-8c76-4a72-858c-d2f0c9c70da5",
-  		"videoName": "Clip Richard Feynman: Mathematicians versus Physicists",
-  		"videoUrl": "https://d271tjczb1hjof.cloudfront.net/d5ef5f9a-8c76-4a72-858c-d2f0c9c70da5-Clip Richard Feynman: Mathematicians versus Physicists.mp4",
-  		"videoCaptionsUrl": "https://d271tjczb1hjof.cloudfront.net/d5ef5f9a-8c76-4a72-858c-d2f0c9c70da5-captions.vtt",
-  		"videoThumbnailUrl": "https://d271tjczb1hjof.cloudfront.net/d5ef5f9a-8c76-4a72-858c-d2f0c9c70da5-thumbnail.jpg"
-  	}
-  ];
+  /*************** STRUCTURES **************/
+  interface VTTData {
+   video: Video;
+   cues: VTTCue[];
+  }
 
-  let filteredFiles = [];
-  let selectedFile = null;
-  let searchQuery = '';
-  /******** TITLE SEARCH VIDEOS ***********/
+  interface Video {
+    videoId: string;
+    videoName: string;
+    videoUrl: string;
+    videoCaptionsUrl: string;
+    videoThumbnailUrl: string;
+  }
 
-  /******** TEXT SEARCH VIDEOS ***********/
   interface VTTCue {
    startTime: number;
    endTime: number;
    text: string;
   }
 
-  interface VTTData {
-   video: string;
-   cues: VTTCue[];
-  }
-
   interface SearchResultItem {
-   videoId: string;
-   videoName: string;   
-  // when search text content display the following
-  // the video name 
-  // the video time stamp of the match AND the caption/doc it was found in 
+   video: Video;
+   vttCue: VTTCue;
   }
+  /*************** STRUCTURES **************/
 
-  let vttUrls = [ "https://d271tjczb1hjof.cloudfront.net/9e1e2dd4-c836-43af-ba21-090b9a1032d3-captions.vtt" ]
+  /******** TITLE SEARCH VIDEOS ***********/
+  let json = `[ { "videoId": "56dca040-60d2-4582-8184-30235584dd73", "videoName": "Richard Feynman-The Character of Physical Law Part6: Probability and Uncertainty", "videoUrl": "https://d271tjczb1hjof.cloudfront.net/56dca040-60d2-4582-8184-30235584dd73-Richard Feynman-The Character of Physical Law Part6: Probability and Uncertainty.mp4", "videoCaptionsUrl": "https://d271tjczb1hjof.cloudfront.net/56dca040-60d2-4582-8184-30235584dd73-captions.vtt", "videoThumbnailUrl": "https://d271tjczb1hjof.cloudfront.net/56dca040-60d2-4582-8184-30235584dd73-thumbnail.jpg" }, { "videoId": "9a77d400-3ebc-4543-9868-084cb9c46ef6", "videoName": "Richard Feynman-The Character of Physical Law Part2: The Relation of Mathematics to Physics", "videoUrl": "https://d271tjczb1hjof.cloudfront.net/9a77d400-3ebc-4543-9868-084cb9c46ef6-Richard Feynman-The Character of Physical Law Part2: The Relation of Mathematics to Physics.mp4", "videoCaptionsUrl": "https://d271tjczb1hjof.cloudfront.net/9a77d400-3ebc-4543-9868-084cb9c46ef6-captions.vtt", "videoThumbnailUrl": "https://d271tjczb1hjof.cloudfront.net/9a77d400-3ebc-4543-9868-084cb9c46ef6-thumbnail.jpg" }, { "videoId": "9e1e2dd4-c836-43af-ba21-090b9a1032d3", "videoName": "Richard Feynman Messenger Lectures at Cornell   The Character of Physical Law   Part 1 The Law of Gravitation", "videoUrl": "https://d271tjczb1hjof.cloudfront.net/9e1e2dd4-c836-43af-ba21-090b9a1032d3-Richard Feynman Messenger Lectures at Cornell   The Character of Physical Law   Part 1 The Law of Gravitation.mp4", "videoCaptionsUrl": "https://d271tjczb1hjof.cloudfront.net/9e1e2dd4-c836-43af-ba21-090b9a1032d3-captions.vtt", "videoThumbnailUrl": "https://d271tjczb1hjof.cloudfront.net/9e1e2dd4-c836-43af-ba21-090b9a1032d3-thumbnail.jpg" }, { "videoId": "d5ef5f9a-8c76-4a72-858c-d2f0c9c70da5", "videoName": "Clip Richard Feynman: Mathematicians versus Physicists", "videoUrl": "https://d271tjczb1hjof.cloudfront.net/d5ef5f9a-8c76-4a72-858c-d2f0c9c70da5-Clip Richard Feynman: Mathematicians versus Physicists.mp4", "videoCaptionsUrl": "https://d271tjczb1hjof.cloudfront.net/d5ef5f9a-8c76-4a72-858c-d2f0c9c70da5-captions.vtt", "videoThumbnailUrl": "https://d271tjczb1hjof.cloudfront.net/d5ef5f9a-8c76-4a72-858c-d2f0c9c70da5-thumbnail.jpg" } ]`
+  let filteredVideos = [];
+  let selectedFile = null;
+  let searchQuery = '';
+  /******** TITLE SEARCH VIDEOS ***********/
+
+  /******** TEXT SEARCH VIDEOS ***********/
   let textSearchQuery = ""
   let searchIndex: lunr.Index;
   let vttData: VTTData[] = [];
-  let searchResults: VTTData[] = [];
+  let searchResults: SearchResultItem[] = [];
   /******** TEXT SEARCH VIDEOS ***********/
 
+  let videos: Video[] = [];
+
   onMount(async () => {
-    vttData = await loadVTTFiles();
-    searchIndex = buildSearchIndex(vttData);
+    videos = JSON.parse(json);
+    // videos = await fetchVideos();
+    await loadVTTFiles();
+
+    buildSearchIndex();
 
     $: {
-      filteredFiles = files.filter(file => {
-        const videoNameText = file.videoName ? file.videoName.toLowerCase() : '';
+      filteredVideos = videos.filter(video => {
+        const videoNameText = video.videoName ? video.videoName.toLowerCase() : '';
         return videoNameText.includes(searchQuery.toLowerCase());
       });
     }
   })
-//  //  try {
-//      const response = await fetch('/getVideos');
-//      if (response.ok) {
-//        files = await response.json();
-//      } else {
-//        console.error('Error fetching files:', response.status);
-//      }
-//    } catch (error) {
-//      console.error('Error fetching files:', error);
-//    }
-//  });
-//
 
-   function parseVTTFile(vttContent: string): VTTCue[] {
-     const lines = vttContent.trim().split('\n');
-     const cues: VTTCue[] = [];
-   
-     for (let i = 0; i < lines.length; i++) {
-       const line = lines[i].trim();
-   
-       if (line.startsWith('NOTE') || line.startsWith('WEBVTT')) {
-         continue;
-       }
-   
-       if (line.includes('-->')) {
-         const [startTime, endTime] = line.split('-->').map(parseTimestamp);
-         const text = lines[++i].trim();
-         cues.push({ startTime, endTime, text });
-       }
-     }
-   
-     return cues;
-   }
-   
-   function parseTimestamp(timestamp: string): number {
-     const [hours, minutes, seconds] = timestamp.trim().split(':');
-     return (
-       parseFloat(hours) * 3600 +
-       parseFloat(minutes) * 60 +
-       parseFloat(seconds.replace(',', '.'))
-     );
-   }
-   
-   async function loadVTTFiles(): Promise<VTTData[]> {
-     const vttData: VTTData[] = [];
-   
-     for (const vttUrl of vttUrls) {
-       const response = await fetch(vttUrl);
-       const vttContent = await response.text();
-       const cues = parseVTTFile(vttContent);
-   
-       vttData.push({
-         video: vttUrl,
-         cues: cues
-       });
-     }
-   
-     return vttData;
-   }
- function buildSearchIndex(vttData: VTTData[]) {
-  const index = lunr(function (this: any) {
-    this.ref('id');
-    this.field('text');
+  function buildSearchIndex() {
+    searchIndex = lunr(function (this: any) {
+      this.ref('id');
+      this.field('text');
+      // Add the test document to the search index
+      this.add({
+        id: 'test_document',
+        text: 'there is some planetary reason for all of these things where once we all built our houses on the land later through evoloution we found a new planetary calling where up castles were constructed'
+      });
+      // Add the test document to the search index
+      this.add({
+        id: 'test_document1',
+        text: 'we some reason we live here'
+      });
 
-   // Add the test document to the search index
-    this.add({
-      id: 'test_document',
-      text: 'there is some planetary reason for all of these things where once we all built our houses on the land later through evoloution we found a new planetary calling where up castles were constructed'
+      for (let i = 0; i < vttData.length; i++) {
+        const item = vttData[i];
+        for (let j = 0; j < item.cues.length; j++) {
+          const uniqueId = `${item.video.videoId}_${j}`;
+          const cue = item.cues[j];
+          this.add({
+            id: uniqueId,
+            text: cue.text
+          });
+        }
+      }
     });
 
+    let results0 = searchIndex.search("a");
+    let results1 = searchIndex.search("along with the earth");
+    let results2 = searchIndex.search("there is some reason")
+    let results3 = searchIndex.search("some reason");
 
-   // Add the test document to the search index
-    this.add({
-      id: 'test_document1',
-      text: 'we some reason we live here'
-    });
+    let results4 = searchIndex.search("planetary");
+    let results5 = searchIndex.search("planetary reason");
+    let results6 = searchIndex.search("planetary calling");
+  }  
 
-    for (let i = 0; i < vttData.length; i++) {
-      const doc = vttData[i];
-      for (let j = 0; j < doc.cues.length; j++) {
-        const cue = doc.cues[j];
-        const uniqueId = `${doc.video}_${j}`;
-        this.add({
-          id: uniqueId,
-          text: cue.text
-        });
+  function performSearch() {
+    if (searchIndex) {
+      if (textSearchQuery.trim() === '') {
+        searchResults = [];
+      } else {
+        searchResults = searchVideos(textSearchQuery, searchIndex, vttData);
+        let x = 10
       }
     }
-
-  });
-
-  let results0 = index.search("a");
-  let results1 = index.search("along with the earth");
-  let results2 = index.search("there is some reason")
-  let results3 = index.search("some reason");
-
-  let results4 = index.search("planetary");
-  let results5 = index.search("planetary reason");
-  let results6 = index.search("planetary calling");
-  return index;
-}  
-
-function performSearch() {
-  if (searchIndex) {
-    if (textSearchQuery.trim() === '') {
-      searchResults = [];
-    } else {
-      searchResults = searchVideos(textSearchQuery, searchIndex, vttData);
-      let x = 10
-    }
   }
-}
 
+  function searchVideos(query: string, index: lunr.Index, vttData: VTTData[]): SearchResultItem[] {
+    const results = index.search(query);
+    const searchResults: SearchResultItem[] = [];
+  
+    results.forEach((result: lunr.Index.Result) => {
+      const [videoId, cueIndex] = result.ref.split('_');
+      const vttDataItem = vttData.find(data => data.video.videoId === videoId);
 
+      if (vttDataItem) {
+        const vttCue = vttDataItem.cues[parseInt(cueIndex)];
+        const searchResultItem: SearchResultItem = {
+          video: vttDataItem.video,
+          vttCue: vttCue
+        };
+        searchResults.push(searchResultItem);
+      }
+    });
+  
+    return searchResults;
+  }
 
-function searchVideos(query: string, index: lunr.Index, vttData: VTTData[]): VTTData[] {
-  const results = index.search(query);
-  const matchingVideos: VTTData[] = [];
-
-  results.forEach((result: lunr.Index.Result) => {
-    const [videoUrl, cueIndex] = result.ref.split('_');
-    const video = vttData.find(data => data.video === videoUrl);
-    if (video) {
-      matchingVideos.push(video);
+  async function loadVTTFiles(): Promise<VTTData[]> {
+    vttData = []; 
+ 
+    for (const video of videos) {
+      if (video.videoCaptionsUrl) {
+        try {
+          const response = await fetch(video.videoCaptionsUrl);
+          const vttContent = await response.text();
+          const cues = parseVTTFile(vttContent);
+ 
+          vttData.push({
+            video: video,
+            cues: cues
+          });
+        } catch (error) {
+          console.error(`Error fetching captions for video ${video.videoId}:`, error);
+        }
+      }
     }
-  });
+ 
+    return vttData;
+  } 
 
-  return matchingVideos;
-}
+  function parseVTTFile(vttContent: string): VTTCue[] {
+    const lines = vttContent.trim().split('\n');
+    const cues: VTTCue[] = [];
+  
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+  
+      if (line.startsWith('NOTE') || line.startsWith('WEBVTT')) {
+        continue;
+      }
+  
+      if (line.includes('-->')) {
+        const [startTime, endTime] = line.split('-->').map(parseTimestamp);
+        const text = lines[++i].trim();
+        cues.push({ startTime, endTime, text });
+      }
+    }
+  
+    return cues;
+  }
+   
+  function parseTimestamp(timestamp: string): number {
+    const [hours, minutes, seconds] = timestamp.trim().split(':');
+    return (
+      parseFloat(hours) * 3600 +
+      parseFloat(minutes) * 60 +
+      parseFloat(seconds.replace(',', '.'))
+    );
+  }
+
 </script>
 
 <body>
@@ -223,7 +199,7 @@ function searchVideos(query: string, index: lunr.Index, vttData: VTTData[]): VTT
             <ul>
                 {#each searchResults as result}
                     <li>
-                    <strong>{result.videoName}</strong> - Matched: {result.match}
+                    <strong>{result.video.videoName}</strong> - Matched: {result.vttCue.text}
                     </li>
                 {/each}
             </ul>
@@ -232,11 +208,9 @@ function searchVideos(query: string, index: lunr.Index, vttData: VTTData[]): VTT
         {/if}
       </section>
 
-
-
       <section class="gallery">
         <div class="row row-cols-2 row-cols-md-4 g-4">
-          {#each filteredFiles as file (file.videoUrl)}
+          {#each filteredVideos as file (file.videoUrl)}
             <div class="col">
               <a href="/video?url={encodeURIComponent(file.videoUrl)}&videoName={encodeURIComponent(file.videoName)}&captions={encodeURIComponent(file.videoCaptionsUrl)}" class="card-link">
                 <div class="card">
