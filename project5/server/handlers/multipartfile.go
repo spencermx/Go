@@ -214,21 +214,30 @@ func (m *MultipartFile) getBytesFromFile() (bytes.Buffer, error) {
     // Save the current position of the file
     currentPosition, err := m.File.Seek(0, io.SeekCurrent)
     if err != nil {
+        log.Printf("Failed to get current file position: %v", err)
         return bytes.Buffer{}, err
     }
+
+    log.Printf("Current file position: %d", currentPosition)
 
     // Read the file into memory
     var fileBytes bytes.Buffer
     _, err = io.Copy(&fileBytes, m.File)
     if err != nil {
+        log.Printf("Failed to read file into memory: %v", err)
         return bytes.Buffer{}, err
     }
+
+    log.Printf("File read into memory. Size: %d bytes", fileBytes.Len())
 
     // Reset the file cursor position to the beginning
     _, err = m.File.Seek(currentPosition, io.SeekStart)
     if err != nil {
+        log.Printf("Failed to reset file position: %v", err)
         return bytes.Buffer{}, err
     }
+
+    log.Printf("File position reset to: %d", currentPosition)
 
     return fileBytes, nil
 }
