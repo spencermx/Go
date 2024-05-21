@@ -1,6 +1,7 @@
 package handlers
 
 import (
+    "log"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -34,41 +35,60 @@ func (m *MultipartFile) IsVideo() bool {
 }
 
 func (m *MultipartFile) GenerateThumbnail() ([]byte, error) {
-	var thumbnailBytes bytes.Buffer
+    var thumbnailBytes bytes.Buffer
+
+    log.Println("Generating thumbnail...")
 
     videoDuration, err := m.GetVideoDuration()
     if err != nil {
+        log.Printf("Failed to get video duration: %v", err)
         return thumbnailBytes.Bytes(), err
     }
 
-	middleDuration := videoDuration / 2
+    log.Printf("Video duration: %v", videoDuration)
 
+    middleDuration := videoDuration / 2
     timeStamp := formatDuration(middleDuration)
 
+    log.Printf("Thumbnail timestamp: %s", timeStamp)
+
     fileBytes, err := m.getBytesFromFile()
+    if err != nil {
+        log.Printf("Failed to get bytes from file: %v", err)
+        return nil, err
+    }
 
-	// Create an FFmpeg command to generate the thumbnail
-	cmd := exec.Command("ffmpeg",
-		"-i", "pipe:0",              // Read input from stdin
-		"-ss", timeStamp,            // "00:00:01" Set the thumbnail timestamp (adjust as needed)
-		"-vframes", "1",             // Extract a single frame
-		"-vf", "scale=600:400",      // Set the thumbnail dimensions (adjust as needed)
-		"-f", "image2pipe",          // Output to stdout as an image
-		"-c:v", "mjpeg",             // Use MJPEG codec for the thumbnail
-		"pipe:1",                    // Write output to stdout
-	)
+    log.Println("Creating FFmpeg command...")
 
-	// Set the command's stdin and stdout
-	cmd.Stdin = &fileBytes
-	cmd.Stdout = &thumbnailBytes
+    // Create an FFmpeg command to generate the thumbnail
+    cmd := exec.Command("ffmpeg",
+        "-i", "pipe:0", // Read input from stdin
+        "-ss", timeStamp, // "00:00:01" Set the thumbnail timestamp (adjust as needed)
+        "-vframes", "1", // Extract a single frame
+        "-vf", "scale=600:400", // Set the thumbnail dimensions (adjust as needed)
+        "-f", "image2pipe", // Output to stdout as an image
+        "-c:v", "mjpeg", // Use MJPEG codec for the thumbnail
+        "pipe:1", // Write output to stdout
+    )
 
-	// Run the FFmpeg command
-	err = cmd.Run()
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate thumbnail: %v", err)
-	}
+    log.Println("Setting command's stdin and stdout...")
 
-	return thumbnailBytes.Bytes(), nil
+    // Set the command's stdin and stdout
+    cmd.Stdin = &fileBytes
+    cmd.Stdout = &thumbnailBytes
+
+    log.Println("Running FFmpeg command...")
+
+    // Run the FFmpeg command
+    err = cmd.Run()
+    if err != nil {
+        log.Printf("Failed to generate thumbnail: %v", err)
+        return nil, fmt.Errorf("failed to generate thumbnail: %v", err)
+    }
+
+    log.Println("Thumbnail generated successfully")
+
+    return thumbnailBytes.Bytes(), nil
 }
 
 func (m *MultipartFile) GetAudioDuration() (time.Duration, error) {
