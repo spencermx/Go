@@ -162,8 +162,113 @@ func CreateCaptionsVtt(w http.ResponseWriter, r *http.Request) {
         awsTranscribe.CreateVttFile(bucketKey)
 	}
 }
-
 func UploadVideo(w http.ResponseWriter, r *http.Request) {
+    log.Println("Request received: /UploadVideo")
+
+    if r.Method != http.MethodPost {
+        log.Println("Invalid request method")
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    log.Println("Request method validated successfully")
+
+    // Check if the request is allowed by the rate uploadLimiter
+    if !uploadLimiter.Allow() {
+        log.Println("Too many requests")
+        http.Error(w, "Too many requests", http.StatusTooManyRequests)
+        return
+    }
+
+    log.Println("Request allowed by rate limiter")
+
+    // Parse the multipart form
+    err := r.ParseMultipartForm(MAX_FILE_SIZE)
+    if err != nil {
+        log.Printf("Failed to parse multipart form: %v", err)
+        http.Error(w, "File Too Large", http.StatusBadRequest)
+        return
+    }
+
+    log.Println("Multipart form parsed successfully")
+
+    // Get the uploaded file
+    file, header, err := r.FormFile("file")
+    if err != nil {
+        log.Printf("Failed to retrieve uploaded file: %v", err)
+        http.Error(w, "Malformed Request", http.StatusBadRequest)
+        return
+    }
+    defer file.Close()
+
+    log.Printf("Uploaded file retrieved successfully: %s", header.Filename)
+
+    // Validate the uploaded file is actually a video
+    var multipartFile *MultipartFile = &MultipartFile{File: file}
+    if !multipartFile.IsVideo() {
+        log.Println("Invalid file type. Expected a video.")
+        http.Error(w, "The selected file must be a video", http.StatusBadRequest)
+        return
+    }
+
+    log.Println("Uploaded file validated as a video")
+
+    // Validate the length of the audio in the uploaded video is less than the MAX_AUDIO_DURATION
+    duration, err := multipartFile.GetAudioDuration()
+    log.Printf("Selected video audio duration: %s", duration.String())
+    if duration > MAX_AUDIO_DURATION {
+        log.Printf("Video duration exceeds the maximum allowed duration of %s", MAX_AUDIO_DURATION.String())
+        http.Error(w, "Video is too large for transcription. Maximum size is 1 hour", http.StatusBadRequest)
+        return
+    }
+
+    log.Println("Video audio duration validated successfully")
+
+    bucketName := os.Getenv("BUCKET_NAME")
+    bucketKey := common.BucketKey{Key: uuid.New().String() + "-" + header.Filename}
+
+    awsClientS3, err := awsclients.NewAwsClientS3(bucketName, AWS_REGION)
+    if err != nil {
+        log.Printf("Failed to create AWS S3 client: %v", err)
+        http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+        return
+    }
+
+    log.Println("AWS S3 client created successfully")
+
+    thumbnailBytes, err := multipartFile.GenerateThumbnail()
+    if err != nil {
+        log.Printf("Failed to generate thumbnail: %v", err)
+        http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+        return
+    }
+
+    log.Println("Video thumbnail generated successfully")
+
+    err = awsClientS3.UploadVideoThumbnail(bucketKey, thumbnailBytes)
+    if err != nil {
+        log.Printf("Failed to upload thumbnail: %v", err)
+        http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+        return
+    }
+
+    log.Printf("Video thumbnail uploaded successfully: %s", bucketKey.Key)
+
+    err = awsClientS3.UploadFile(bucketKey, file)
+    if err != nil {
+        log.Printf("Failed to upload file: %v", err)
+        http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+        return
+    }
+
+    log.Printf("Video file uploaded successfully: %s", bucketKey.Key)
+
+    log.Println("Video upload process completed successfully")
+    
+    http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func UploadVideo1(w http.ResponseWriter, r *http.Request) {
     log.Println("/UploadVideo")
 
 	if r.Method != http.MethodPost {
